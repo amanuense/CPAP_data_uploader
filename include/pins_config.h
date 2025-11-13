@@ -1,33 +1,54 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef PINS_CONFIG_H
+#define PINS_CONFIG_H
 
-// Pin definitions for ESP32 PICO D4 (SD WIFI PRO)
-#define LED_BUILTIN 2
+/*
+ * Pin Configuration for SD-WIFI-PRO (ESP32-PICO-V3-02)
+ * 
+ * This board features:
+ * - ESP32-PICO-V3-02 MCU
+ * - 8GB built-in Flash
+ * - SD card interface (SDIO 4-bit mode)
+ * - Shared SD card access with CPAP machine
+ */
 
-// SD WIFI PRO Pin Mapping
-// SDIO Pins (Built-in 8GB Flash)
-#define SDIO_D3_CS    // Pin 1 - SPI CS
-#define SDIO_CMD_MOSI // Pin 2 - SPI MOSI
-#define SDIO_CLK      // Pin 5 - SPI CLK
-#define SDIO_D0_MISO  // Pin 7 - SPI MISO
+// ============================================================================
+// SD Card Pins (SDIO 4-bit mode)
+// ============================================================================
+// The SD card uses SDIO interface for high-speed access
+#define SD_CMD_PIN    15    // SDIO Command pin
+#define SD_CLK_PIN    14    // SDIO Clock pin
+#define SD_D0_PIN     2     // SDIO Data 0
+#define SD_D1_PIN     4     // SDIO Data 1
+#define SD_D2_PIN     12    // SDIO Data 2
+#define SD_D3_PIN     13    // SDIO Data 3 / CS pin for SPI mode
 
-// GPIO Pins Available
-#define GPIO_32  32  // Pin 10 - ADC1_CH4, TOUCH9, RTC_GPIO9
-#define GPIO_26  26  // Pin 11 - DAC_2, ADC2_CH9, RTC_GPIO7
-#define GPIO_2   2   // Pin 12 - Must be LOW for flashing
-#define GPIO_0   0   // Pin 13 - Must be LOW for flashing, outputs PWM at boot
-#define GPIO_3   3   // Pin 15 - RX0, HIGH at boot
-#define GPIO_1   1   // Pin 16 - TX0, debug output at boot
-#define GPIO_22  22  // Pin 17 - I2C_SCL
-#define GPIO_21  21  // Pin 18 - I2C_SDA
-#define GPIO_19  19  // Pin 19
+// Alternative SPI mode pin names (same physical pins)
+#define SD_CS_PIN     13    // Chip Select (same as D3)
+#define SD_MISO_PIN   2     // MISO (same as D0)
+#define SD_MOSI_PIN   15    // MOSI (same as CMD)
+#define SD_SCLK_PIN   14    // Clock (same as CLK)
 
-// Serial pins
-#define RX0 GPIO_3
-#define TX0 GPIO_1
+// ============================================================================
+// SD Card Control Pins
+// ============================================================================
+// These pins control SD card sharing between ESP32 and CPAP machine
+#define SD_SWITCH_PIN 26    // SD card bus switch control (LOW = ESP has control)
+#define SD_POWER_PIN  27    // SD card power control (if available)
+#define CS_SENSE      32    // Chip Select sense - detects when CPAP machine accesses SD
 
-// I2C pins
-#define I2C_SCL GPIO_22
-#define I2C_SDA GPIO_21
+// ============================================================================
+// Configuration Button
+// ============================================================================
+#define AP_ENABLE_BUTTON -1  // Button to enable AP mode during startup (-1 to disable)
 
-#endif
+// ============================================================================
+// SD Card Configuration
+// ============================================================================
+#define SDIO_BIT_MODE     4           // Use 4-bit SDIO mode for faster access
+#define SPI_BLOCKOUT_PERIOD 10UL      // Seconds to block SD access after CPAP machine uses it
+
+// SD card sharing control values
+#define SD_SWITCH_ESP_VALUE   LOW     // Value to give ESP control of SD card
+#define SD_SWITCH_CPAP_VALUE HIGH     // Value to give CPAP machine control of SD card
+
+#endif // PINS_CONFIG_H

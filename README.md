@@ -11,84 +11,57 @@ TODO: add information on how this data can be used with Oscar or SleepHQ
 
 
 ## Hardware
-- ESP32 PICO D4 ([SD WIFI PRO](https://www.fysetc.com/products/fysetc-upgrade-sd-wifi-pro-with-card-reader-module-run-wireless-by-esp32-chip-web-server-reader-uploader-3d-printer-parts))
+- ESP32-PICO-V3-02 ([SD WIFI PRO](https://www.fysetc.com/products/fysetc-upgrade-sd-wifi-pro-with-card-reader-module-run-wireless-by-esp32-chip-web-server-reader-uploader-3d-printer-parts))
 - 8GB built-in Flash
 - SD 7.0 compatible interface
 
-## Available Firmware references (included in docs folder)
-These references will be deleted once we no longer need them.
+## Architecture
 
-TODO: we need to get rid of the suff that we don't need. we might need to add new dependencies and get rid of the old dependencies listed here as firmware options. we want to keep the FTP server and WebDav support from ESP3D but we need the station mode.
+This project uses a clean, class-based architecture with explicit dependency injection:
 
-This project includes reference code from two firmware options:
-
-### 1. SdWiFiBrowser (SWD 0.x)
-Basic WiFi file browser with:
-- File upload/download via web interface
-- WiFi AP and STA modes
-- Simple web server
-
-### 2. ESP3D v3.0 (docs/SD-WIFI-PRO/ESDP3D_3.0)
-Advanced firmware with:
-- WebDAV support
-- FTP server
-- Web UI with printer control
-- OLED screen support
-- Serial port printer control
-
-## Current Setup
-This project uses **SdWiFiBrowser** libraries as a starting point.
+- **Config** - Manages configuration from SD card
+- **SDCardManager** - Handles SD card sharing with CPAP machine
+- **WiFiManager** - Manages WiFi station mode connection
+- **FileUploader** - Handles file upload to remote endpoints
 
 ## Project Structure
 ```
 ├── src/                  # Main application code
-│   └── main.cpp         # Application entry point
+│   ├── main.cpp         # Application entry point
+│   ├── Config.cpp       # Configuration management
+│   ├── SDCardManager.cpp # SD card control
+│   ├── WiFiManager.cpp  # WiFi connection handling
+│   └── FileUploader.cpp # File upload logic
 ├── include/             # Header files
-│   └── pins_config.h    # Pin definitions for SD WIFI PRO
+│   ├── pins_config.h    # Pin definitions for SD WIFI PRO
+│   ├── Config.h
+│   ├── SDCardManager.h
+│   ├── WiFiManager.h
+│   └── FileUploader.h
 ├── venv/                # Python virtual environment
 ├── docs/                # Documentation and reference firmware
 ├── platformio.ini       # PlatformIO configuration
-├── apply_patches.sh     # Script to patch library compatibility issues
 └── README.md           # This file
 ```
 
 ## Libraries (managed by PlatformIO)
-Libraries are automatically downloaded from GitHub:
-- **AsyncTCP** - Async TCP library for ESP32
-- **ESPAsyncWebServer** - Async web server
-- **SdWiFiBrowser** - WiFi file browser with:
-  - config.h/cpp - Configuration management
-  - network.h/cpp - WiFi handling  
-  - FSWebServer.h/cpp - Web server
-  - sdControl.h/cpp - SD card control
-- **ArduinoJson** - JSON library
+- **ArduinoJson** - JSON library for config file parsing
+- **SD_MMC** - Built-in ESP32 SDIO library (4-bit mode)
+- **WiFi** - Built-in ESP32 WiFi library
+- **FS** - Built-in ESP32 filesystem library
 
 ## Setup
 1. Activate Python virtual environment: `source venv/bin/activate`
 2. Install dependencies: `pio pkg install`
-3. Apply library patches: `./apply_patches.sh`
-4. Build: `pio run`
-5. Upload: `pio run -t upload`
-6. Access via browser at `http://192.168.4.1` (AP mode) or assigned IP (STA mode)
+3. Build: `pio run`
+4. Upload: `pio run -t upload`
 
 ## Quick Build
 ```bash
 source venv/bin/activate
 pio pkg install
-./apply_patches.sh
 pio run -t upload
 ```
-
-## Known Issues
-
-### Library Compatibility Patches
-The `apply_patches.sh` script automatically fixes const-correctness issues in:
-- AsyncTCP library (status() method)
-- SdWiFiBrowser FSWebServer (AsyncWebParameter pointers)
-
-These patches are required due to API changes in ESPAsyncWebServer 3.x.
-
-**Note:** Run `./apply_patches.sh` after every `pio pkg install` or when cleaning the project.
 
 ## Monitor
 `pio device monitor`
@@ -101,20 +74,63 @@ See `include/pins_config.h` for pin definitions specific to SD WIFI PRO hardware
 # Runtime usage
 
 ## CONFIG FILE
-TODO: add information about contents and usage of configuration file
-- MODE: AP|STA
-  While in AP mode, the device presents a WEBDAV interface to download the files.
-  While in STAtion mode, the device connects to the provided network and attempts to upload all new files to the specified remote endpoint
-- WIFI_SSID: SSID of the AP network or the network to join
-- WIFI_PASS: password of the network to join
-- SCHEDULE: TODO
-- ENDPOINT: remote location where to drop the files, must provide write permissions.
-- ENDPOINT_TYPE: SMB|WEBDAV|SLEEPHQ
-  (TODO) SMB is a windows share, Format: //address/folder. example //10.0.0.5/respaldos/cpap_data
-  (TODO) WEBDAV requires a webdav share such as NextCloud, Format: http://address/folder
-  (TODO) SLEEPHQ upload the files directly to sleep HQ, this option requires extra setup explained in SLEEPHQ section
-- ENDPOINT_USER: User required for the remote endpoint
-- ENDPOINT_PASS: password required for the remote endpoint
 
-## SLEEPHQ compatibility
-not yet supported
+Create a `config.json` file in the root of your SD card with the following format:
+
+```json
+{
+  "WIFI_SSID": "YourNetworkName",
+  "WIFI_PASS": "YourNetworkPassword",
+  "SCHEDULE": "daily",
+  "ENDPOINT": "http://your-server.com/upload",
+  "ENDPOINT_TYPE": "WEBDAV",
+  "ENDPOINT_USER": "username",
+  "ENDPOINT_PASS": "password"
+}
+```
+
+### Configuration Fields
+
+- **WIFI_SSID**: SSID of the WiFi network to connect to (required)
+- **WIFI_PASS**: Password for the WiFi network (required)
+- **SCHEDULE**: Upload schedule (e.g., "daily", "hourly") - TODO: implement scheduling logic
+- **ENDPOINT**: Remote location where files will be uploaded (required)
+- **ENDPOINT_TYPE**: Type of endpoint - `WEBDAV`, `SMB`, or `SLEEPHQ`
+  - `WEBDAV`: WebDAV share (e.g., NextCloud) - Format: `http://address/folder`
+  - `SMB`: Windows share - Format: `//address/folder` (e.g., `//10.0.0.5/backups/cpap_data`) - TODO: implement
+  - `SLEEPHQ`: Direct upload to SleepHQ - TODO: implement
+- **ENDPOINT_USER**: Username for the remote endpoint
+- **ENDPOINT_PASS**: Password for the remote endpoint
+
+## How It Works
+
+1. **Startup**: Device reads config from SD card
+2. **WiFi Connection**: Connects to specified WiFi network in station mode
+3. **File Detection**: Periodically checks SD card for new files
+4. **SD Card Sharing**: Respects CPAP machine access - only reads when CPAP is not using the card
+5. **Upload**: Uploads new files to configured endpoint
+6. **Monitoring**: Continuously monitors for new files and maintains WiFi connection
+
+## Development Status
+
+### Implemented
+- ✅ SD card sharing with CPAP machine
+- ✅ Configuration file loading from SD card
+- ✅ WiFi station mode connection
+- ✅ Class-based architecture with dependency injection
+
+### TODO
+- ⏳ File upload implementations (WebDAV, SMB, SleepHQ)
+- ⏳ File tracking (which files have been uploaded)
+- ⏳ Schedule-based upload logic
+- ⏳ Error handling and retry logic
+- ⏳ Status LED indicators
+- ⏳ Low power mode when idle
+
+## Reference Firmware
+
+The `docs/` folder contains reference implementations:
+- **SdWiFiBrowser** - Basic WiFi file browser
+- **ESP3D v3.0** - Advanced firmware with WebDAV/FTP support
+
+These are for reference only and not used directly in this project.
