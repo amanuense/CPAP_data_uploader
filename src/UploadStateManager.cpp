@@ -1,6 +1,11 @@
 #include "UploadStateManager.h"
 #include <ArduinoJson.h>
+
+#ifdef UNIT_TEST
+#include "MockMD5.h"
+#else
 #include "esp32/rom/md5_hash.h"
+#endif
 
 UploadStateManager::UploadStateManager() 
     : stateFilePath("/.upload_state.json"),
@@ -215,18 +220,18 @@ bool UploadStateManager::loadState(fs::FS &sd) {
     
     // Load file checksums
     fileChecksums.clear();
-    JsonObject checksums = doc["file_checksums"];
+    JsonObject checksums = doc.getObject("file_checksums");
     if (!checksums.isNull()) {
-        for (JsonPair kv : checksums) {
-            fileChecksums[String(kv.key().c_str())] = String(kv.value().as<const char*>());
+        for (auto& kv : *checksums.data) {
+            fileChecksums[String(kv.first.c_str())] = String(kv.second.as<const char*>());
         }
     }
     
     // Load completed folders
     completedDatalogFolders.clear();
-    JsonArray folders = doc["completed_datalog_folders"];
+    JsonArray folders = doc.getArray("completed_datalog_folders");
     if (!folders.isNull()) {
-        for (JsonVariant v : folders) {
+        for (const auto& v : *folders.data) {
             completedDatalogFolders.insert(String(v.as<const char*>()));
         }
     }
@@ -264,7 +269,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     // Save file checksums
     JsonObject checksums = doc.createNestedObject("file_checksums");
     for (const auto& pair : fileChecksums) {
-        checksums[pair.first] = pair.second;
+        checksums[pair.first.c_str()] = JsonVariant(pair.second.c_str());
     }
     
     // Save completed folders
@@ -274,7 +279,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     }
     
     // Save retry tracking
-    doc["current_retry_folder"] = currentRetryFolder;
+    doc["current_retry_folder"] = JsonVariant(currentRetryFolder.c_str());
     doc["current_retry_count"] = currentRetryCount;
     
     // Write to temporary file first to avoid corruption
