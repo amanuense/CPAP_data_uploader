@@ -1,0 +1,5 @@
+# Ignore release packages
+*.zip
+
+# Keep esptool.exe for Windows releases
+!esptool.exe
