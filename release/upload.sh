@@ -9,11 +9,15 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Configuration
 CHIP="esp32"
 BAUD_RATE="460800"
-FIRMWARE_FILE="firmware.bin"
+FIRMWARE_FILE="$SCRIPT_DIR/firmware.bin"
 FLASH_OFFSET="0x10000"
+VENV_DIR="$SCRIPT_DIR/.venv"
 
 # Check if port is provided
 if [ -z "$1" ]; then
@@ -48,10 +52,19 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Check if esptool is available, install if not
-if ! python3 -m esptool version &> /dev/null; then
-    echo -e "${YELLOW}esptool not found. Installing...${NC}"
-    python3 -m pip install --user esptool
+# Setup virtual environment if it doesn't exist
+if [ ! -d "$VENV_DIR" ]; then
+    echo -e "${YELLOW}Creating virtual environment...${NC}"
+    python3 -m venv "$VENV_DIR"
+fi
+
+# Activate virtual environment
+source "$VENV_DIR/bin/activate"
+
+# Check if esptool is available in venv, install if not
+if ! python -m esptool version &> /dev/null; then
+    echo -e "${YELLOW}Installing esptool...${NC}"
+    pip install esptool
 fi
 
 # Upload firmware
@@ -61,11 +74,12 @@ echo "Firmware: $FIRMWARE_FILE"
 echo "Baud rate: $BAUD_RATE"
 echo ""
 
-python3 -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD_RATE" \
+python -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD_RATE" \
     write_flash "$FLASH_OFFSET" "$FIRMWARE_FILE"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Upload successful!${NC}"
+    deactivate
 else
     echo -e "${RED}Upload failed!${NC}"
     echo ""
@@ -74,5 +88,6 @@ else
     echo "  2. Try holding the BOOT button during upload"
     echo "  3. Check if you have permission to access the serial port"
     echo "     Run: sudo $0 $PORT"
+    deactivate
     exit 1
 fi

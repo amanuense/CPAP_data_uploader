@@ -1,5 +1,11 @@
 # Ignore release packages
 *.zip
 
+# Ignore firmware binaries (generated during build)
+firmware.bin
+
+# Ignore Python virtual environment
+.venv/
+
 # Keep esptool.exe for Windows releases
 !esptool.exe
