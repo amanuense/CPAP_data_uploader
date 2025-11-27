@@ -2,11 +2,11 @@
 #define PINS_CONFIG_H
 
 /*
- * Pin Configuration for SD-WIFI-PRO (ESP32-PICO-V3-02)
+ * Pin Configuration for SD-WIFI-PRO (ESP32-PICO-D4)
  * 
  * This board features:
- * - ESP32-PICO-V3-02 MCU
- * - 8GB built-in Flash
+ * - ESP32-PICO-D4 MCU
+ * - 4MB built-in Flash
  * - SD card interface (SDIO 4-bit mode)
  * - Shared SD card access with CPAP machine
  */

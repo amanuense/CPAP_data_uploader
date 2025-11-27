@@ -11,8 +11,8 @@ TODO: add information on how this data can be used with Oscar or SleepHQ
 
 
 ## Hardware
-- ESP32-PICO-V3-02 ([SD WIFI PRO](https://www.fysetc.com/products/fysetc-upgrade-sd-wifi-pro-with-card-reader-module-run-wireless-by-esp32-chip-web-server-reader-uploader-3d-printer-parts))
-- 8GB built-in Flash
+- ESP32-PICO-D4 ([SD WIFI PRO](https://www.fysetc.com/products/fysetc-upgrade-sd-wifi-pro-with-card-reader-module-run-wireless-by-esp32-chip-web-server-reader-uploader-3d-printer-parts))
+- 4MB built-in Flash
 - SD 7.0 compatible interface
 
 ## Architecture
@@ -355,16 +355,14 @@ SMB Share: //server/share/
 - ✅ Cross-platform release packaging (Windows, macOS, Linux)
 - ✅ Simplified timezone configuration (hours instead of seconds)
 
-### ⏳ In Progress
-- 🔄 Hardware testing and validation
-- 🔄 Integration testing on real CPAP data
+### ✅ Completed Testing
+- ✅ Hardware testing and validation on ESP32-PICO-D4
+- ✅ Integration testing on real CPAP data
 
 ### 📋 TODO (Future Releases)
 - ⏳ WebDAV upload implementation (placeholder created)
 - ⏳ SleepHQ upload implementation (placeholder created)
-- ⏳ Status LED indicators
 - ⏳ Low power mode when idle
-- ⏳ OTA (Over-The-Air) firmware updates
 
 ## Testing
 
