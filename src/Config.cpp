@@ -1,4 +1,5 @@
 #include "Config.h"
+#include "Logger.h"
 #include <ArduinoJson.h>
 
 Config::Config() : 
@@ -13,7 +14,7 @@ Config::Config() :
 bool Config::loadFromSD(fs::FS &sd) {
     File configFile = sd.open("/config.json");
     if (!configFile) {
-        Serial.println("Failed to open config file");
+        LOG("Failed to open config file");
         return false;
     }
 
@@ -22,8 +23,7 @@ bool Config::loadFromSD(fs::FS &sd) {
     configFile.close();
 
     if (error) {
-        Serial.print("Failed to parse config: ");
-        Serial.println(error.c_str());
+        LOGF("Failed to parse config: %s", error.c_str());
         return false;
     }
 

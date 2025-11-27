@@ -1,4 +1,5 @@
 #include "SleepHQUploader.h"
+#include "Logger.h"
 
 #ifdef ENABLE_SLEEPHQ_UPLOAD
 
@@ -17,12 +18,12 @@ SleepHQUploader::~SleepHQUploader() {
 bool SleepHQUploader::parseEndpoint(const String& endpoint) {
     // TODO: Parse SleepHQ API endpoint
     apiEndpoint = endpoint;
-    Serial.println("[SleepHQ] TODO: SleepHQ uploader not yet implemented");
+    LOG("[SleepHQ] TODO: SleepHQ uploader not yet implemented");
     return false;
 }
 
 bool SleepHQUploader::authenticate() {
-    Serial.println("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
+    LOG("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
     return false;
 }
 
@@ -31,8 +32,8 @@ void SleepHQUploader::disconnect() {
 }
 
 bool SleepHQUploader::begin() {
-    Serial.println("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
-    Serial.println("[SleepHQ] Please use SMB upload or wait for SleepHQ implementation");
+    LOG("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
+    LOG("[SleepHQ] Please use SMB upload or wait for SleepHQ implementation");
     return false;
 }
 
@@ -47,8 +48,8 @@ bool SleepHQUploader::isConnected() const {
 bool SleepHQUploader::upload(const String& localPath, const String& remotePath, 
                              fs::FS &sd, unsigned long& bytesTransferred) {
     bytesTransferred = 0;
-    Serial.println("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
-    Serial.println("[SleepHQ] Please use SMB upload or wait for SleepHQ implementation");
+    LOG("[SleepHQ] ERROR: SleepHQ uploader not yet implemented");
+    LOG("[SleepHQ] Please use SMB upload or wait for SleepHQ implementation");
     return false;
 }
 

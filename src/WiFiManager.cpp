@@ -1,11 +1,11 @@
 #include "WiFiManager.h"
+#include "Logger.h"
 #include <WiFi.h>
 
 WiFiManager::WiFiManager() : connected(false) {}
 
 bool WiFiManager::connectStation(const String& ssid, const String& password) {
-    Serial.print("Connecting to WiFi: ");
-    Serial.println(ssid);
+    LOGF("Connecting to WiFi: %s", ssid.c_str());
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
@@ -13,18 +13,17 @@ bool WiFiManager::connectStation(const String& ssid, const String& password) {
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
         delay(500);
-        Serial.print(".");
+        LOG(".");
         attempts++;
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nWiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        LOG("\nWiFi connected");
+        LOGF("IP address: %s", WiFi.localIP().toString().c_str());
         connected = true;
         return true;
     } else {
-        Serial.println("\nWiFi connection failed");
+        LOG("\nWiFi connection failed");
         connected = false;
         return false;
     }

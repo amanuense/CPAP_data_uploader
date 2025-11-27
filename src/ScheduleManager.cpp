@@ -1,4 +1,5 @@
 #include "ScheduleManager.h"
+#include "Logger.h"
 
 ScheduleManager::ScheduleManager() :
     uploadHour(12),
@@ -16,7 +17,7 @@ bool ScheduleManager::begin(int uploadHour, long gmtOffset, int daylightOffset) 
     
     // Validate upload hour
     if (uploadHour < 0 || uploadHour > 23) {
-        Serial.println("Invalid upload hour, using default (12)");
+        LOG("Invalid upload hour, using default (12)");
         this->uploadHour = 12;
     }
     
@@ -24,7 +25,7 @@ bool ScheduleManager::begin(int uploadHour, long gmtOffset, int daylightOffset) 
 }
 
 bool ScheduleManager::syncTime() {
-    Serial.println("Syncing time with NTP server...");
+    LOG("Syncing time with NTP server...");
     
     // Configure time with NTP server and timezone offsets
     configTime(gmtOffsetSeconds, daylightOffsetSeconds, ntpServer);
@@ -39,9 +40,8 @@ bool ScheduleManager::syncTime() {
             struct tm timeinfo;
             if (getLocalTime(&timeinfo)) {
                 ntpSynced = true;
-                Serial.println("NTP time synchronized successfully");
-                Serial.print("Current time: ");
-                Serial.println(asctime(&timeinfo));
+                LOG("NTP time synchronized successfully");
+                LOGF("Current time: %s", asctime(&timeinfo));
                 return true;
             }
         }
@@ -49,21 +49,21 @@ bool ScheduleManager::syncTime() {
         retries++;
     }
     
-    Serial.println("Failed to sync NTP time");
+    LOG("Failed to sync NTP time");
     ntpSynced = false;
     return false;
 }
 
 bool ScheduleManager::isUploadTime() {
     if (!ntpSynced) {
-        Serial.println("Time not synced, cannot check upload schedule");
+        LOG("Time not synced, cannot check upload schedule");
         return false;
     }
     
     time_t now = time(nullptr);
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
-        Serial.println("Failed to get local time");
+        LOG("Failed to get local time");
         return false;
     }
     
@@ -92,8 +92,7 @@ bool ScheduleManager::isUploadTime() {
 
 void ScheduleManager::markUploadCompleted() {
     lastUploadTimestamp = time(nullptr);
-    Serial.print("Upload marked as completed at timestamp: ");
-    Serial.println(lastUploadTimestamp);
+    LOGF("Upload marked as completed at timestamp: %lu", lastUploadTimestamp);
 }
 
 unsigned long ScheduleManager::calculateNextUploadTime() {

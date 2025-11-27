@@ -1,4 +1,5 @@
 #include "WebDAVUploader.h"
+#include "Logger.h"
 
 #ifdef ENABLE_WEBDAV_UPLOAD
 
@@ -17,12 +18,12 @@ WebDAVUploader::~WebDAVUploader() {
 bool WebDAVUploader::parseEndpoint(const String& endpoint) {
     // TODO: Parse WebDAV URL
     webdavUrl = endpoint;
-    Serial.println("[WebDAV] TODO: WebDAV uploader not yet implemented");
+    LOG("[WebDAV] TODO: WebDAV uploader not yet implemented");
     return false;
 }
 
 bool WebDAVUploader::connect() {
-    Serial.println("[WebDAV] ERROR: WebDAV uploader not yet implemented");
+    LOG("[WebDAV] ERROR: WebDAV uploader not yet implemented");
     return false;
 }
 
@@ -31,8 +32,8 @@ void WebDAVUploader::disconnect() {
 }
 
 bool WebDAVUploader::begin() {
-    Serial.println("[WebDAV] ERROR: WebDAV uploader not yet implemented");
-    Serial.println("[WebDAV] Please use SMB upload or wait for WebDAV implementation");
+    LOG("[WebDAV] ERROR: WebDAV uploader not yet implemented");
+    LOG("[WebDAV] Please use SMB upload or wait for WebDAV implementation");
     return false;
 }
 
@@ -45,15 +46,15 @@ bool WebDAVUploader::isConnected() const {
 }
 
 bool WebDAVUploader::createDirectory(const String& path) {
-    Serial.println("[WebDAV] ERROR: WebDAV uploader not yet implemented");
+    LOG("[WebDAV] ERROR: WebDAV uploader not yet implemented");
     return false;
 }
 
 bool WebDAVUploader::upload(const String& localPath, const String& remotePath, 
                             fs::FS &sd, unsigned long& bytesTransferred) {
     bytesTransferred = 0;
-    Serial.println("[WebDAV] ERROR: WebDAV uploader not yet implemented");
-    Serial.println("[WebDAV] Please use SMB upload or wait for WebDAV implementation");
+    LOG("[WebDAV] ERROR: WebDAV uploader not yet implemented");
+    LOG("[WebDAV] Please use SMB upload or wait for WebDAV implementation");
     return false;
 }
 

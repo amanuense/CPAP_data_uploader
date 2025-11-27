@@ -1,4 +1,5 @@
 #include "SDCardManager.h"
+#include "Logger.h"
 #include "pins_config.h"
 #include <SD_MMC.h>
 
@@ -19,7 +20,7 @@ bool SDCardManager::begin() {
     digitalWrite(SD_POWER_PIN, HIGH);  // Power on SD card
     #endif
 
-    Serial.println("Initializing SD card...");
+    LOG("Initializing SD card...");
     return true;
 }
 
@@ -30,7 +31,7 @@ bool SDCardManager::takeControl() {
 
     // Check if CPAP machine is using SD card
     if (digitalRead(CS_SENSE) == LOW) {
-        Serial.println("CPAP machine is using SD card, waiting...");
+        LOG("CPAP machine is using SD card, waiting...");
         return false;
     }
 
@@ -40,19 +41,19 @@ bool SDCardManager::takeControl() {
 
     // Initialize SD_MMC
     if (!SD_MMC.begin("/sdcard", SDIO_BIT_MODE_FAST)) {  // false = 4-bit mode
-        Serial.println("SD card mount failed");
+        LOG("SD card mount failed");
         releaseControl();
         return false;
     }
 
     uint8_t cardType = SD_MMC.cardType();
     if (cardType == CARD_NONE) {
-        Serial.println("No SD card attached");
+        LOG("No SD card attached");
         releaseControl();
         return false;
     }
 
-    Serial.println("SD card mounted successfully");
+    LOG("SD card mounted successfully");
     initialized = true;
     return true;
 }
@@ -65,7 +66,7 @@ void SDCardManager::releaseControl() {
     SD_MMC.end();
     setControlPin(false);
     espHasControl = false;
-    Serial.println("SD card control released to CPAP machine");
+    LOG("SD card control released to CPAP machine");
 }
 
 bool SDCardManager::hasControl() const { return espHasControl; }

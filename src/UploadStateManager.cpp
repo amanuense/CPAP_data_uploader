@@ -1,4 +1,5 @@
 #include "UploadStateManager.h"
+#include "Logger.h"
 #include <ArduinoJson.h>
 
 #ifdef UNIT_TEST
@@ -14,12 +15,12 @@ UploadStateManager::UploadStateManager()
 }
 
 bool UploadStateManager::begin(fs::FS &sd) {
-    Serial.println("[UploadStateManager] Initializing...");
+    LOG("[UploadStateManager] Initializing...");
     
     // Try to load existing state
     if (!loadState(sd)) {
-        Serial.println("[UploadStateManager] WARNING: No existing state file or failed to load");
-        Serial.println("[UploadStateManager] Starting with empty state - all files will be considered new");
+        LOG("[UploadStateManager] WARNING: No existing state file or failed to load");
+        LOG("[UploadStateManager] Starting with empty state - all files will be considered new");
         
         // Initialize with empty state - this is safe and allows operation to continue
         fileChecksums.clear();
@@ -35,15 +36,13 @@ bool UploadStateManager::begin(fs::FS &sd) {
 String UploadStateManager::calculateChecksum(fs::FS &sd, const String& filePath) {
     File file = sd.open(filePath, FILE_READ);
     if (!file) {
-        Serial.print("[UploadStateManager] ERROR: Failed to open file for checksum: ");
-        Serial.println(filePath);
+        LOGF("[UploadStateManager] ERROR: Failed to open file for checksum: %s", filePath.c_str());
         return "";
     }
     
     // Check if file is readable
     if (!file.available() && file.size() > 0) {
-        Serial.print("[UploadStateManager] ERROR: File exists but cannot be read: ");
-        Serial.println(filePath);
+        LOGF("[UploadStateManager] ERROR: File exists but cannot be read: %s", filePath.c_str());
         file.close();
         return "";
     }
@@ -60,8 +59,7 @@ String UploadStateManager::calculateChecksum(fs::FS &sd, const String& filePath)
         size_t bytesRead = file.read(buffer, bufferSize);
         if (bytesRead == 0) {
             // Read error
-            Serial.print("[UploadStateManager] ERROR: Read error while calculating checksum for: ");
-            Serial.println(filePath);
+            LOGF("[UploadStateManager] ERROR: Read error while calculating checksum for: %s", filePath.c_str());
             file.close();
             return "";
         }
@@ -77,13 +75,8 @@ String UploadStateManager::calculateChecksum(fs::FS &sd, const String& filePath)
     
     // Verify we read the expected amount
     if (totalBytesRead != expectedSize) {
-        Serial.print("[UploadStateManager] WARNING: Checksum size mismatch for ");
-        Serial.print(filePath);
-        Serial.print(" (read ");
-        Serial.print(totalBytesRead);
-        Serial.print(" bytes, expected ");
-        Serial.print(expectedSize);
-        Serial.println(" bytes)");
+        LOGF("[UploadStateManager] WARNING: Checksum size mismatch for %s (read %u bytes, expected %u bytes)", 
+             filePath.c_str(), totalBytesRead, expectedSize);
     }
     
     uint8_t hash[16];
@@ -174,22 +167,20 @@ bool UploadStateManager::save(fs::FS &sd) {
 bool UploadStateManager::loadState(fs::FS &sd) {
     File file = sd.open(stateFilePath, FILE_READ);
     if (!file) {
-        Serial.println("[UploadStateManager] State file does not exist - will create on first save");
+        LOG("[UploadStateManager] State file does not exist - will create on first save");
         return false;
     }
     
     // Check file size to detect corruption
     size_t fileSize = file.size();
     if (fileSize == 0) {
-        Serial.println("[UploadStateManager] WARNING: State file is empty (corrupted)");
+        LOG("[UploadStateManager] WARNING: State file is empty (corrupted)");
         file.close();
         return false;
     }
     
     if (fileSize > 65536) {  // 64KB sanity check
-        Serial.print("[UploadStateManager] WARNING: State file unusually large (");
-        Serial.print(fileSize);
-        Serial.println(" bytes) - may be corrupted");
+        LOGF("[UploadStateManager] WARNING: State file unusually large (%u bytes) - may be corrupted", fileSize);
         file.close();
         return false;
     }
@@ -201,18 +192,16 @@ bool UploadStateManager::loadState(fs::FS &sd) {
     file.close();
     
     if (error) {
-        Serial.print("[UploadStateManager] ERROR: Failed to parse state file: ");
-        Serial.println(error.c_str());
-        Serial.println("[UploadStateManager] State file may be corrupted - continuing with empty state");
+        LOGF("[UploadStateManager] ERROR: Failed to parse state file: %s", error.c_str());
+        LOG("[UploadStateManager] State file may be corrupted - continuing with empty state");
         return false;
     }
     
     // Validate version field
     int version = doc["version"] | 0;
     if (version != 1) {
-        Serial.print("[UploadStateManager] WARNING: Unknown state file version: ");
-        Serial.println(version);
-        Serial.println("[UploadStateManager] Attempting to load anyway...");
+        LOGF("[UploadStateManager] WARNING: Unknown state file version: %d", version);
+        LOG("[UploadStateManager] Attempting to load anyway...");
     }
     
     // Load timestamp
@@ -240,17 +229,12 @@ bool UploadStateManager::loadState(fs::FS &sd) {
     currentRetryFolder = doc["current_retry_folder"] | "";
     currentRetryCount = doc["current_retry_count"] | 0;
     
-    Serial.println("[UploadStateManager] State file loaded successfully");
-    Serial.print("[UploadStateManager]   Tracked files: ");
-    Serial.println(fileChecksums.size());
-    Serial.print("[UploadStateManager]   Completed folders: ");
-    Serial.println(completedDatalogFolders.size());
+    LOG("[UploadStateManager] State file loaded successfully");
+    LOGF("[UploadStateManager]   Tracked files: %u", fileChecksums.size());
+    LOGF("[UploadStateManager]   Completed folders: %u", completedDatalogFolders.size());
     if (!currentRetryFolder.isEmpty()) {
-        Serial.print("[UploadStateManager]   Current retry folder: ");
-        Serial.print(currentRetryFolder);
-        Serial.print(" (attempt ");
-        Serial.print(currentRetryCount);
-        Serial.println(")");
+        LOGF("[UploadStateManager]   Current retry folder: %s (attempt %d)", 
+             currentRetryFolder.c_str(), currentRetryCount);
     }
     
     return true;
@@ -286,8 +270,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     String tempFilePath = stateFilePath + ".tmp";
     File file = sd.open(tempFilePath, FILE_WRITE);
     if (!file) {
-        Serial.print("[UploadStateManager] ERROR: Failed to open state file for writing: ");
-        Serial.println(tempFilePath);
+        LOGF("[UploadStateManager] ERROR: Failed to open state file for writing: %s", tempFilePath.c_str());
         return false;
     }
     
@@ -295,7 +278,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     file.close();
     
     if (bytesWritten == 0) {
-        Serial.println("[UploadStateManager] ERROR: Failed to write state file (0 bytes written)");
+        LOG("[UploadStateManager] ERROR: Failed to write state file (0 bytes written)");
         sd.remove(tempFilePath);  // Clean up failed temp file
         return false;
     }
@@ -303,7 +286,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     // Verify the temp file was written correctly
     File verifyFile = sd.open(tempFilePath, FILE_READ);
     if (!verifyFile) {
-        Serial.println("[UploadStateManager] ERROR: Failed to verify temp state file");
+        LOG("[UploadStateManager] ERROR: Failed to verify temp state file");
         sd.remove(tempFilePath);
         return false;
     }
@@ -312,11 +295,8 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     verifyFile.close();
     
     if (verifySize != bytesWritten) {
-        Serial.print("[UploadStateManager] ERROR: State file size mismatch (wrote ");
-        Serial.print(bytesWritten);
-        Serial.print(" bytes, file is ");
-        Serial.print(verifySize);
-        Serial.println(" bytes)");
+        LOGF("[UploadStateManager] ERROR: State file size mismatch (wrote %u bytes, file is %u bytes)", 
+             bytesWritten, verifySize);
         sd.remove(tempFilePath);
         return false;
     }
@@ -324,20 +304,18 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     // Remove old state file if it exists
     if (sd.exists(stateFilePath)) {
         if (!sd.remove(stateFilePath)) {
-            Serial.println("[UploadStateManager] WARNING: Failed to remove old state file");
+            LOG("[UploadStateManager] WARNING: Failed to remove old state file");
             // Continue anyway - rename might still work
         }
     }
     
     // Rename temp file to actual state file
     if (!sd.rename(tempFilePath, stateFilePath)) {
-        Serial.println("[UploadStateManager] ERROR: Failed to rename temp state file");
+        LOG("[UploadStateManager] ERROR: Failed to rename temp state file");
         sd.remove(tempFilePath);  // Clean up
         return false;
     }
     
-    Serial.print("[UploadStateManager] State file saved successfully (");
-    Serial.print(bytesWritten);
-    Serial.println(" bytes)");
+    LOGF("[UploadStateManager] State file saved successfully (%u bytes)", bytesWritten);
     return true;
 }
