@@ -69,7 +69,7 @@ bool ScheduleManager::syncTime() {
                 LOG("[NTP] WARNING: Timestamp valid but getLocalTime failed");
             }
         }
-        delay(500);
+        delay(1000);  // Increased from 500ms to 1000ms for high-latency networks
         retries++;
     }
     

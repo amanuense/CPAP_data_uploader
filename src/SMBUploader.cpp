@@ -337,6 +337,9 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
         return false;
     }
     
+    // Track upload timing
+    unsigned long startTime = millis();
+    
     // Stream file data
     bool success = true;
     unsigned long totalBytesRead = 0;
@@ -403,8 +406,12 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
     
     localFile.close();
     
+    unsigned long uploadTime = millis() - startTime;
+    
     if (success) {
-        LOGF("[SMB] Upload complete: %lu bytes transferred in %lu seconds", bytesTransferred, (millis() - bytesTransferred) / 1000);
+        LOGF("[SMB] Upload complete: %lu bytes transferred in %lu ms (%.2f KB/s)", 
+             bytesTransferred, uploadTime, 
+             uploadTime > 0 ? (bytesTransferred / 1024.0) / (uploadTime / 1000.0) : 0.0);
     } else {
         LOG("[SMB] Upload failed - file not uploaded or incomplete");
     }
