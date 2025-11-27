@@ -1,5 +1,6 @@
 #include "ScheduleManager.h"
 #include "Logger.h"
+#include <ESP32Ping.h>
 
 ScheduleManager::ScheduleManager() :
     uploadHour(12),
@@ -21,35 +22,63 @@ bool ScheduleManager::begin(int uploadHour, long gmtOffset, int daylightOffset) 
         this->uploadHour = 12;
     }
     
+    // Attempt to synchronize time with NTP server
+    syncTime();
+    
     return true;
 }
 
 bool ScheduleManager::syncTime() {
-    LOG("Syncing time with NTP server...");
+    LOGF("[NTP] Starting time sync with server: %s", ntpServer);
+    LOGF("[NTP] GMT offset: %ld seconds, Daylight offset: %d seconds", gmtOffsetSeconds, daylightOffsetSeconds);
+    
+    // First, check if we can reach the NTP server via ping
+    LOG("[NTP] Testing connectivity to NTP server...");
+    bool pingSuccess = Ping.ping(ntpServer, 3);  // 3 ping attempts
+    
+    if (pingSuccess) {
+        LOGF("[NTP] Ping successful! Average time: %d ms", Ping.averageTime());
+    } else {
+        LOG("[NTP] WARNING: Cannot ping NTP server");
+        LOG("[NTP] This may indicate network connectivity issues");
+        LOG("[NTP] Will attempt NTP sync anyway...");
+    }
     
     // Configure time with NTP server and timezone offsets
     configTime(gmtOffsetSeconds, daylightOffsetSeconds, ntpServer);
     
     // Wait for time to be set (with timeout)
     int retries = 0;
-    const int maxRetries = 10;
+    const int maxRetries = 20;  // Increased timeout
     
+    LOG("[NTP] Waiting for time synchronization...");
     while (retries < maxRetries) {
         time_t now = time(nullptr);
+        LOGF("[NTP] Retry %d/%d: Current timestamp: %lu", retries + 1, maxRetries, (unsigned long)now);
+        
         if (now > 24 * 3600) {  // Time is set if it's past Jan 1, 1970 + 1 day
             struct tm timeinfo;
             if (getLocalTime(&timeinfo)) {
                 ntpSynced = true;
-                LOG("NTP time synchronized successfully");
-                LOGF("Current time: %s", asctime(&timeinfo));
+                LOG("[NTP] Time synchronized successfully!");
+                LOGF("[NTP] Current time: %04d-%02d-%02d %02d:%02d:%02d", 
+                     timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+                     timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
                 return true;
+            } else {
+                LOG("[NTP] WARNING: Timestamp valid but getLocalTime failed");
             }
         }
         delay(500);
         retries++;
     }
     
-    LOG("Failed to sync NTP time");
+    LOG("[NTP] ERROR: Failed to sync time after maximum retries");
+    LOG("[NTP] Possible causes:");
+    LOG("[NTP]   - Network firewall blocking NTP (UDP port 123)");
+    LOG("[NTP]   - DNS resolution failure for pool.ntp.org");
+    LOG("[NTP]   - No internet connectivity");
+    LOG("[NTP]   - NTP server unreachable from this network");
     ntpSynced = false;
     return false;
 }
