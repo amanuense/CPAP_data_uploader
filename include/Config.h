@@ -16,8 +16,7 @@ private:
     int uploadHour;
     int sessionDurationSeconds;
     int maxRetryAttempts;
-    long gmtOffsetSeconds;
-    int daylightOffsetSeconds;
+    int gmtOffsetHours;
     bool isValid;
 
 public:
@@ -35,8 +34,7 @@ public:
     int getUploadHour() const;
     int getSessionDurationSeconds() const;
     int getMaxRetryAttempts() const;
-    long getGmtOffsetSeconds() const;
-    int getDaylightOffsetSeconds() const;
+    int getGmtOffsetHours() const;
     bool valid() const;
 };
 

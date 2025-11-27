@@ -55,8 +55,7 @@ bool FileUploader::begin(fs::FS &sd) {
     scheduleManager = new ScheduleManager();
     if (!scheduleManager->begin(
             config->getUploadHour(),
-            config->getGmtOffsetSeconds(),
-            config->getDaylightOffsetSeconds())) {
+            config->getGmtOffsetHours())) {
         LOG("[FileUploader] ERROR: Failed to initialize ScheduleManager");
         return false;
     }

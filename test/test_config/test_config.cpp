@@ -40,8 +40,7 @@ void test_config_load_valid() {
         "UPLOAD_HOUR": 14,
         "SESSION_DURATION_SECONDS": 10,
         "MAX_RETRY_ATTEMPTS": 5,
-        "GMT_OFFSET_SECONDS": -28800,
-        "DAYLIGHT_OFFSET_SECONDS": 3600
+        "GMT_OFFSET_HOURS": -8
     })";
     
     mockSD.addFile("/config.json", configContent);
@@ -61,8 +60,7 @@ void test_config_load_valid() {
     TEST_ASSERT_EQUAL(14, config.getUploadHour());
     TEST_ASSERT_EQUAL(10, config.getSessionDurationSeconds());
     TEST_ASSERT_EQUAL(5, config.getMaxRetryAttempts());
-    TEST_ASSERT_EQUAL(-28800, config.getGmtOffsetSeconds());
-    TEST_ASSERT_EQUAL(3600, config.getDaylightOffsetSeconds());
+    TEST_ASSERT_EQUAL(-8, config.getGmtOffsetHours());
 }
 
 // Test loading configuration with default values
@@ -87,8 +85,7 @@ void test_config_load_with_defaults() {
     TEST_ASSERT_EQUAL(12, config.getUploadHour());  // Default noon
     TEST_ASSERT_EQUAL(5, config.getSessionDurationSeconds());  // Default 5 seconds
     TEST_ASSERT_EQUAL(3, config.getMaxRetryAttempts());  // Default 3 attempts
-    TEST_ASSERT_EQUAL(0, config.getGmtOffsetSeconds());  // Default UTC
-    TEST_ASSERT_EQUAL(0, config.getDaylightOffsetSeconds());  // Default no DST
+    TEST_ASSERT_EQUAL(0, config.getGmtOffsetHours());  // Default UTC
 }
 
 // Test loading configuration with missing SSID (should fail)
@@ -203,7 +200,7 @@ void test_config_negative_gmt_offset() {
     std::string configContent = R"({
         "WIFI_SSID": "TestNetwork",
         "ENDPOINT": "//server/share",
-        "GMT_OFFSET_SECONDS": -28800
+        "GMT_OFFSET_HOURS": -8
     })";
     
     mockSD.addFile("/config.json", configContent);
@@ -212,7 +209,7 @@ void test_config_negative_gmt_offset() {
     bool loaded = config.loadFromSD(mockSD);
     
     TEST_ASSERT_TRUE(loaded);
-    TEST_ASSERT_EQUAL(-28800, config.getGmtOffsetSeconds());  // -8 hours (PST)
+    TEST_ASSERT_EQUAL(-8, config.getGmtOffsetHours());  // -8 hours (PST)
 }
 
 // Test configuration with positive GMT offset (e.g., CET)
@@ -220,7 +217,7 @@ void test_config_positive_gmt_offset() {
     std::string configContent = R"({
         "WIFI_SSID": "TestNetwork",
         "ENDPOINT": "//server/share",
-        "GMT_OFFSET_SECONDS": 3600
+        "GMT_OFFSET_HOURS": 1
     })";
     
     mockSD.addFile("/config.json", configContent);
@@ -229,7 +226,7 @@ void test_config_positive_gmt_offset() {
     bool loaded = config.loadFromSD(mockSD);
     
     TEST_ASSERT_TRUE(loaded);
-    TEST_ASSERT_EQUAL(3600, config.getGmtOffsetSeconds());  // +1 hour (CET)
+    TEST_ASSERT_EQUAL(1, config.getGmtOffsetHours());  // +1 hour (CET)
 }
 
 // Test configuration with various upload hours

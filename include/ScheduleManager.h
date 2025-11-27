@@ -10,15 +10,14 @@ private:
     unsigned long lastUploadTimestamp;
     bool ntpSynced;
     const char* ntpServer;
-    long gmtOffsetSeconds;
-    int daylightOffsetSeconds;
+    int gmtOffsetHours;
     
     unsigned long calculateNextUploadTime();
 
 public:
     ScheduleManager();
     
-    bool begin(int uploadHour, long gmtOffset, int daylightOffset);
+    bool begin(int uploadHour, int gmtOffsetHours);
     bool syncTime();
     
     bool isUploadTime();

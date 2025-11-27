@@ -236,8 +236,7 @@ void TestWebServer::handleConfig() {
         json += "\"upload_hour\":" + String(config->getUploadHour()) + ",";
         json += "\"session_duration_seconds\":" + String(config->getSessionDurationSeconds()) + ",";
         json += "\"max_retry_attempts\":" + String(config->getMaxRetryAttempts()) + ",";
-        json += "\"gmt_offset_seconds\":" + String(config->getGmtOffsetSeconds()) + ",";
-        json += "\"daylight_offset_seconds\":" + String(config->getDaylightOffsetSeconds());
+        json += "\"gmt_offset_hours\":" + String(config->getGmtOffsetHours());
     }
     
     json += "}";

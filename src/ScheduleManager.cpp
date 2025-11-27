@@ -7,14 +7,12 @@ ScheduleManager::ScheduleManager() :
     lastUploadTimestamp(0),
     ntpSynced(false),
     ntpServer("pool.ntp.org"),
-    gmtOffsetSeconds(0),
-    daylightOffsetSeconds(0)
+    gmtOffsetHours(0)
 {}
 
-bool ScheduleManager::begin(int uploadHour, long gmtOffset, int daylightOffset) {
+bool ScheduleManager::begin(int uploadHour, int gmtOffsetHours) {
     this->uploadHour = uploadHour;
-    this->gmtOffsetSeconds = gmtOffset;
-    this->daylightOffsetSeconds = daylightOffset;
+    this->gmtOffsetHours = gmtOffsetHours;
     
     // Validate upload hour
     if (uploadHour < 0 || uploadHour > 23) {
@@ -30,7 +28,7 @@ bool ScheduleManager::begin(int uploadHour, long gmtOffset, int daylightOffset) 
 
 bool ScheduleManager::syncTime() {
     LOGF("[NTP] Starting time sync with server: %s", ntpServer);
-    LOGF("[NTP] GMT offset: %ld seconds, Daylight offset: %d seconds", gmtOffsetSeconds, daylightOffsetSeconds);
+    LOGF("[NTP] GMT offset: %d hours", gmtOffsetHours);
     
     // Allow network to stabilize after WiFi connection
     LOG("[NTP] Waiting 5 seconds for network to stabilize...");
@@ -54,8 +52,9 @@ bool ScheduleManager::syncTime() {
         LOG("[NTP] Proceeding with NTP sync...");
     }
     
-    // Configure time with NTP server and timezone offsets
-    configTime(gmtOffsetSeconds, daylightOffsetSeconds, ntpServer);
+    // Configure time with NTP server and timezone offset (convert hours to seconds)
+    long gmtOffsetSeconds = gmtOffsetHours * 3600L;
+    configTime(gmtOffsetSeconds, 0, ntpServer);
     
     // Wait for time to be set (with timeout)
     int retries = 0;

@@ -6,8 +6,7 @@ Config::Config() :
     uploadHour(12),  // Default: noon
     sessionDurationSeconds(5),  // Default: 5 seconds
     maxRetryAttempts(3),  // Default: 3 attempts
-    gmtOffsetSeconds(0),  // Default: UTC
-    daylightOffsetSeconds(0),  // Default: no DST
+    gmtOffsetHours(0),  // Default: UTC
     isValid(false)
 {}
 
@@ -39,8 +38,7 @@ bool Config::loadFromSD(fs::FS &sd) {
     uploadHour = doc["UPLOAD_HOUR"] | 12;
     sessionDurationSeconds = doc["SESSION_DURATION_SECONDS"] | 5;
     maxRetryAttempts = doc["MAX_RETRY_ATTEMPTS"] | 3;
-    gmtOffsetSeconds = doc["GMT_OFFSET_SECONDS"] | 0L;
-    daylightOffsetSeconds = doc["DAYLIGHT_OFFSET_SECONDS"] | 0;
+    gmtOffsetHours = doc["GMT_OFFSET_HOURS"] | 0;
 
     isValid = !wifiSSID.isEmpty() && !endpoint.isEmpty();
     return isValid;
@@ -56,6 +54,5 @@ const String& Config::getEndpointPassword() const { return endpointPassword; }
 int Config::getUploadHour() const { return uploadHour; }
 int Config::getSessionDurationSeconds() const { return sessionDurationSeconds; }
 int Config::getMaxRetryAttempts() const { return maxRetryAttempts; }
-long Config::getGmtOffsetSeconds() const { return gmtOffsetSeconds; }
-int Config::getDaylightOffsetSeconds() const { return daylightOffsetSeconds; }
+int Config::getGmtOffsetHours() const { return gmtOffsetHours; }
 bool Config::valid() const { return isValid; }
