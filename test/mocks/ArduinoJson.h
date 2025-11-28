@@ -248,30 +248,32 @@ public:
 // Mock deserialization error
 class DeserializationError {
 public:
-    bool error;
+    enum ErrorCode {
+        Ok,
+        InvalidInput,
+        NoMemory
+    };
+    
+    ErrorCode code;
     std::string message;
     
-    DeserializationError() : error(false), message("") {}
-    DeserializationError(bool err, const std::string& msg = "") : error(err), message(msg) {}
+    DeserializationError() : code(Ok), message("") {}
+    DeserializationError(ErrorCode c, const std::string& msg = "") : code(c), message(msg) {}
     
     operator bool() const {
-        return error;
+        return code != Ok;
+    }
+    
+    bool operator==(const DeserializationError& other) const {
+        return code == other.code;
+    }
+    
+    bool operator!=(const DeserializationError& other) const {
+        return code != other.code;
     }
     
     const char* c_str() const {
         return message.c_str();
-    }
-    
-    static DeserializationError Ok() {
-        return DeserializationError(false);
-    }
-    
-    static DeserializationError InvalidInput() {
-        return DeserializationError(true, "Invalid input");
-    }
-    
-    static DeserializationError NoMemory() {
-        return DeserializationError(true, "No memory");
     }
 };
 
@@ -287,7 +289,7 @@ DeserializationError deserializeJson(T& doc, fs::File& file) {
     
     // Simple JSON parser for testing
     if (content.empty() || content[0] != '{') {
-        return DeserializationError::InvalidInput();
+        return DeserializationError(DeserializationError::InvalidInput, "Invalid input");
     }
     
     // Parse key-value pairs
@@ -310,7 +312,7 @@ DeserializationError deserializeJson(T& doc, fs::File& file) {
         
         // Parse key
         if (content[pos] != '"') {
-            return DeserializationError::InvalidInput();
+            return DeserializationError(DeserializationError::InvalidInput, "Invalid input");
         }
         pos++;
         
@@ -415,7 +417,7 @@ DeserializationError deserializeJson(T& doc, fs::File& file) {
         }
     }
     
-    return DeserializationError::Ok();
+    return DeserializationError(DeserializationError::Ok);
 }
 
 // Mock serializeJson function

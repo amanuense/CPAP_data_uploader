@@ -185,14 +185,38 @@ bool UploadStateManager::loadState(fs::FS &sd) {
         return false;
     }
     
-    // Allocate JSON document
-    DynamicJsonDocument doc(4096);
+    // Allocate JSON document with dynamic sizing based on file size
+    // ArduinoJson recommends capacity = fileSize * 1.5 to 2.0 for deserialization overhead
+    // We use 2.0x multiplier to ensure sufficient capacity for JSON parsing
+    size_t jsonCapacity = fileSize * 2;
+    
+    // Ensure minimum capacity of 4KB for small files
+    if (jsonCapacity < 4096) {
+        jsonCapacity = 4096;
+    }
+    
+    LOGF("[UploadStateManager] Allocating %u bytes for JSON document (file size: %u bytes)", 
+         jsonCapacity, fileSize);
+    
+    DynamicJsonDocument doc(jsonCapacity);
     
     DeserializationError error = deserializeJson(doc, file);
     file.close();
     
     if (error) {
         LOGF("[UploadStateManager] ERROR: Failed to parse state file: %s", error.c_str());
+        
+        // Check if error is due to insufficient memory
+#ifdef UNIT_TEST
+        if (error == DeserializationError(DeserializationError::NoMemory)) {
+#else
+        if (error == DeserializationError::NoMemory) {
+#endif
+            LOGF("[UploadStateManager] ERROR: Insufficient memory to parse state file (needed ~%u bytes)", 
+                 jsonCapacity);
+            LOG("[UploadStateManager] Consider pruning old entries or increasing available RAM");
+        }
+        
         LOG("[UploadStateManager] State file may be corrupted - continuing with empty state");
         return false;
     }
@@ -209,16 +233,33 @@ bool UploadStateManager::loadState(fs::FS &sd) {
     
     // Load file checksums
     fileChecksums.clear();
+#ifdef UNIT_TEST
+    // Mock ArduinoJson uses getObject() and returns std::map
+    JsonObject checksums = doc.getObject("file_checksums");
+    if (!checksums.isNull()) {
+        for (auto it = checksums.begin(); it != checksums.end(); ++it) {
+            fileChecksums[String(it->first.c_str())] = String(it->second.as<const char*>());
+        }
+    }
+#else
+    // Real ArduinoJson v6 uses operator[] and JsonPair
     JsonObject checksums = doc["file_checksums"];
     if (!checksums.isNull()) {
         for (JsonPair kv : checksums) {
             fileChecksums[String(kv.key().c_str())] = String(kv.value().as<const char*>());
         }
     }
+#endif
     
     // Load completed folders
     completedDatalogFolders.clear();
+#ifdef UNIT_TEST
+    // Mock ArduinoJson uses getArray()
+    JsonArray folders = doc.getArray("completed_datalog_folders");
+#else
+    // Real ArduinoJson v6 uses operator[] with implicit conversion
     JsonArray folders = doc["completed_datalog_folders"];
+#endif
     if (!folders.isNull()) {
         for (JsonVariant v : folders) {
             completedDatalogFolders.insert(String(v.as<const char*>()));
@@ -241,8 +282,25 @@ bool UploadStateManager::loadState(fs::FS &sd) {
 }
 
 bool UploadStateManager::saveState(fs::FS &sd) {
-    // Allocate JSON document
-    DynamicJsonDocument doc(4096);
+    // Calculate required JSON document size dynamically
+    // Estimate: base overhead (200) + folders (30 bytes each) + checksums (100 bytes each)
+    size_t estimatedSize = 200 + 
+                          (completedDatalogFolders.size() * 30) + 
+                          (fileChecksums.size() * 100);
+    
+    // Add 50% overhead for JSON formatting and safety margin
+    size_t jsonCapacity = estimatedSize * 3 / 2;
+    
+    // Ensure minimum capacity of 4KB
+    if (jsonCapacity < 4096) {
+        jsonCapacity = 4096;
+    }
+    
+    LOGF("[UploadStateManager] Allocating %u bytes for JSON document (%u folders, %u files)", 
+         jsonCapacity, completedDatalogFolders.size(), fileChecksums.size());
+    
+    // Allocate JSON document with calculated capacity
+    DynamicJsonDocument doc(jsonCapacity);
     
     // Save version
     doc["version"] = 1;

@@ -3,12 +3,16 @@
 #include "MockTime.h"
 #include "MockFS.h"
 #include "MockMD5.h"
+#include "MockLogger.h"
 
 // Include mock implementations
 #include "../mocks/Arduino.cpp"
 
 // Mock ArduinoJson for testing
 #include "../mocks/ArduinoJson.h"
+
+// Prevent real Logger.h from being included (we're using MockLogger)
+#define LOGGER_H
 
 // Include the UploadStateManager implementation
 #include "UploadStateManager.h"
@@ -114,6 +118,47 @@ void test_load_state_file_wrong_version() {
     TEST_ASSERT_EQUAL(1699876800, manager.getLastUploadTimestamp());
 }
 
+void test_load_state_file_large_with_many_folders() {
+    UploadStateManager manager;
+    
+    // Create a large state file with many folders (simulating years of usage)
+    // This tests the dynamic buffer sizing
+    std::string stateJson = R"({
+        "version": 1,
+        "last_upload_timestamp": 1699876800,
+        "file_checksums": {
+            "/identification.json": "abc123",
+            "/SRT.edf": "def456"
+        },
+        "completed_datalog_folders": [)";
+    
+    // Add 500 folders to simulate ~1.5 years of usage
+    for (int i = 0; i < 500; i++) {
+        if (i > 0) stateJson += ",";
+        char folderName[16];
+        snprintf(folderName, sizeof(folderName), "\"2024%04d\"", i);
+        stateJson += folderName;
+    }
+    
+    stateJson += R"(],
+        "current_retry_folder": "",
+        "current_retry_count": 0
+    })";
+    
+    testFS.addFile("/.upload_state.json", stateJson.c_str());
+    
+    // Load state - should succeed with dynamic buffer sizing
+    bool result = manager.begin(testFS);
+    
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_EQUAL(1699876800, manager.getLastUploadTimestamp());
+    
+    // Verify some folders were loaded
+    TEST_ASSERT_TRUE(manager.isFolderCompleted("20240000"));
+    TEST_ASSERT_TRUE(manager.isFolderCompleted("20240100"));
+    TEST_ASSERT_TRUE(manager.isFolderCompleted("20240499"));
+}
+
 // Test state file saving to JSON
 void test_save_state_file_success() {
     UploadStateManager manager;
@@ -176,6 +221,40 @@ void test_save_state_file_overwrite() {
     UploadStateManager manager2;
     manager2.begin(testFS);
     TEST_ASSERT_EQUAL(1234567890, manager2.getLastUploadTimestamp());
+}
+
+void test_save_state_file_large_with_many_folders() {
+    UploadStateManager manager;
+    
+    manager.begin(testFS);
+    
+    // Add many folders to simulate years of usage
+    // This tests the dynamic buffer sizing on save
+    for (int i = 0; i < 500; i++) {
+        char folderName[16];
+        snprintf(folderName, sizeof(folderName), "2024%04d", i);
+        manager.markFolderCompleted(folderName);
+    }
+    
+    // Add some file checksums
+    manager.markFileUploaded("/identification.json", "abc123");
+    manager.markFileUploaded("/SRT.edf", "def456");
+    manager.setLastUploadTimestamp(1699876800);
+    
+    // Save should succeed with dynamic buffer sizing
+    bool result = manager.save(testFS);
+    
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_TRUE(testFS.exists("/.upload_state.json"));
+    
+    // Verify saved content by loading it again
+    UploadStateManager manager2;
+    manager2.begin(testFS);
+    
+    TEST_ASSERT_EQUAL(1699876800, manager2.getLastUploadTimestamp());
+    TEST_ASSERT_TRUE(manager2.isFolderCompleted("20240000"));
+    TEST_ASSERT_TRUE(manager2.isFolderCompleted("20240100"));
+    TEST_ASSERT_TRUE(manager2.isFolderCompleted("20240499"));
 }
 
 // Test checksum calculation for files
@@ -505,11 +584,13 @@ int main(int argc, char **argv) {
     RUN_TEST(test_load_state_file_empty);
     RUN_TEST(test_load_state_file_corrupted_json);
     RUN_TEST(test_load_state_file_wrong_version);
+    RUN_TEST(test_load_state_file_large_with_many_folders);
     
     // State file saving tests
     RUN_TEST(test_save_state_file_success);
     RUN_TEST(test_save_state_file_empty_state);
     RUN_TEST(test_save_state_file_overwrite);
+    RUN_TEST(test_save_state_file_large_with_many_folders);
     
     // Checksum calculation tests
     RUN_TEST(test_checksum_calculation_basic);
