@@ -141,16 +141,11 @@ build_flags =
 
 ### SMB Upload Setup
 
-**Quick Setup:**
+SMB upload is enabled by default. The `setup.sh` script automatically configures libsmb2.
+
+**Manual libsmb2 setup:**
 ```bash
 ./scripts/setup_libsmb2.sh
-```
-
-**Manual Setup:**
-```bash
-mkdir -p components
-git clone https://github.com/sahlberg/libsmb2.git components/libsmb2
-pio run
 ```
 
 See [docs/LIBSMB2_INTEGRATION.md](docs/LIBSMB2_INTEGRATION.md) for detailed integration documentation.
@@ -158,17 +153,46 @@ See [docs/LIBSMB2_INTEGRATION.md](docs/LIBSMB2_INTEGRATION.md) for detailed inte
 **To disable SMB support** (reduces binary size by ~220KB), comment out `-DENABLE_SMB_UPLOAD` in `platformio.ini`.
 
 ## Setup
-1. Activate Python virtual environment: `source venv/bin/activate`
-2. Install dependencies: `pio pkg install`
-3. Build: `pio run`
-4. Upload: `pio run -t upload`
 
-## Quick Build & Upload
+### First Time Setup (New Checkout)
+
+Run the automated setup script:
+```bash
+./setup.sh
+```
+
+This will:
+1. Create Python virtual environment
+2. Install PlatformIO
+3. Clone and configure libsmb2 component (if SMB upload enabled)
+4. Install all dependencies
+
+### Manual Setup
+
+If you prefer manual setup:
+```bash
+# 1. Create Python venv
+python3 -m venv venv
+
+# 2. Install PlatformIO
+source venv/bin/activate
+pip install platformio
+
+# 3. Setup libsmb2 (if using SMB upload)
+./scripts/setup_libsmb2.sh
+
+# 4. Install dependencies
+pio pkg install
+```
+
+## Build & Upload
+
+### Quick Build & Upload
 ```bash
 ./build_upload.sh
 ```
 
-Or manually:
+### Manual Build & Upload
 ```bash
 source venv/bin/activate
 pio run -e pico32 -t upload
@@ -445,6 +469,19 @@ http://192.168.1.100/
 #### Security Note
 
 The test web server has no authentication. Only enable it on trusted networks during development/testing. Always disable it for production deployments by commenting out `-DENABLE_TEST_WEBSERVER` in `platformio.ini`.
+
+## Project Portability
+
+The project is designed to be easily portable. These directories can be safely deleted before copying/archiving:
+- `venv/` - Python virtual environment (recreated by `setup.sh`)
+- `components/libsmb2/` - SMB library (cloned by `setup.sh`)
+- `.pio/` - Build artifacts (recreated on build)
+- `release/.venv/` - Release script venv (auto-created when needed)
+
+After copying to a new location, simply run:
+```bash
+./setup.sh
+```
 
 ## Release Packages
 
