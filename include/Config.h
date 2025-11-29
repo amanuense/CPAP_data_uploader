@@ -4,6 +4,13 @@
 #include <Arduino.h>
 #include <FS.h>
 
+// Conditionally include Preferences for ESP32 or use mock for testing
+#ifdef UNIT_TEST
+    #include "MockPreferences.h"
+#else
+    #include <Preferences.h>
+#endif
+
 class Config {
 private:
     String wifiSSID;
@@ -18,9 +25,38 @@ private:
     int maxRetryAttempts;
     int gmtOffsetHours;
     bool isValid;
+    
+    // Credential storage mode flags
+    bool storePlainText;
+    bool credentialsInFlash;
+    
+    // Preferences object for secure credential storage
+    Preferences preferences;
+    
+    // Preferences constants
+    static const char* PREFS_NAMESPACE;
+    static const char* PREFS_KEY_WIFI_PASS;
+    static const char* PREFS_KEY_ENDPOINT_PASS;
+    static const char* CENSORED_VALUE;
+    
+    // Preferences initialization and cleanup methods
+    bool initPreferences();
+    void closePreferences();
+    
+    // Credential storage and retrieval methods
+    bool storeCredential(const char* key, const String& value);
+    String loadCredential(const char* key, const String& defaultValue);
+    bool isCensored(const String& value);
+    
+    // Config file censoring method
+    bool censorConfigFile(fs::FS &sd);
+    
+    // Credential migration method
+    bool migrateToSecureStorage(fs::FS &sd);
 
 public:
     Config();
+    ~Config();
     
     bool loadFromSD(fs::FS &sd);
     
@@ -36,6 +72,10 @@ public:
     int getMaxRetryAttempts() const;
     int getGmtOffsetHours() const;
     bool valid() const;
+    
+    // Credential storage mode getters
+    bool isStoringPlainText() const;
+    bool areCredentialsInFlash() const;
 };
 
 #endif // CONFIG_H

@@ -229,14 +229,36 @@ void TestWebServer::handleConfig() {
     String json = "{";
     
     if (config) {
+        // Check if credentials are stored in secure mode
+        bool credentialsSecured = config->areCredentialsInFlash();
+        
         json += "\"wifi_ssid\":\"" + config->getWifiSSID() + "\",";
+        
+        // Return censored value for WiFi password if in secure mode
+        if (credentialsSecured) {
+            json += "\"wifi_password\":\"***STORED_IN_FLASH***\",";
+        } else {
+            json += "\"wifi_password\":\"" + config->getWifiPassword() + "\",";
+        }
+        
         json += "\"endpoint\":\"" + config->getEndpoint() + "\",";
         json += "\"endpoint_type\":\"" + config->getEndpointType() + "\",";
         json += "\"endpoint_user\":\"" + config->getEndpointUser() + "\",";
+        
+        // Return censored value for endpoint password if in secure mode
+        if (credentialsSecured) {
+            json += "\"endpoint_password\":\"***STORED_IN_FLASH***\",";
+        } else {
+            json += "\"endpoint_password\":\"" + config->getEndpointPassword() + "\",";
+        }
+        
         json += "\"upload_hour\":" + String(config->getUploadHour()) + ",";
         json += "\"session_duration_seconds\":" + String(config->getSessionDurationSeconds()) + ",";
         json += "\"max_retry_attempts\":" + String(config->getMaxRetryAttempts()) + ",";
-        json += "\"gmt_offset_hours\":" + String(config->getGmtOffsetHours());
+        json += "\"gmt_offset_hours\":" + String(config->getGmtOffsetHours()) + ",";
+        
+        // Add credentials_secured field to indicate storage mode
+        json += "\"credentials_secured\":" + String(credentialsSecured ? "true" : "false");
     }
     
     json += "}";

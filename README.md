@@ -4,6 +4,7 @@ Automatically upload CPAP therapy data from your SD card to network storage. Tes
 
 **Features:**
 - Automatic daily uploads to Windows shares, NAS, or Samba servers
+- Secure credential storage in ESP32 flash memory (optional)
 - Respects CPAP machine access to SD card
 - Tracks uploaded files (no duplicates)
 - Scheduled uploads with timezone support
@@ -64,11 +65,41 @@ Create `config.json` on your SD card:
   "ENDPOINT_USER": "username",
   "ENDPOINT_PASS": "password",
   "UPLOAD_HOUR": 12,
-  "GMT_OFFSET_HOURS": -8
+  "GMT_OFFSET_HOURS": -8,
+  "STORE_CREDENTIALS_PLAIN_TEXT": false
 }
 ```
 
 See the [User Guide](release/README.md) for complete configuration reference.
+
+### Credential Security
+
+By default, the system stores WiFi and endpoint passwords securely in ESP32 flash memory (NVS) and censors them in `config.json`. This protects your credentials if someone accesses your SD card or web interface.
+
+**Secure Mode (Default - Recommended):**
+- Set `"STORE_CREDENTIALS_PLAIN_TEXT": false` or omit the field
+- Credentials automatically migrated to flash memory on first boot
+- `config.json` updated with `***STORED_IN_FLASH***` placeholders
+- Web interface shows censored values
+
+**Plain Text Mode (Development/Debugging):**
+- Set `"STORE_CREDENTIALS_PLAIN_TEXT": true`
+- Credentials remain visible in `config.json`
+- Web interface shows actual values
+
+**Migration Process:**
+1. First boot with secure mode: System reads plain text credentials from `config.json`
+2. Stores them securely in ESP32 flash memory (NVS)
+3. Updates `config.json` with censored placeholders
+4. Subsequent boots: Loads credentials from flash memory
+
+**Security Considerations:**
+- ✅ Protected against SD card physical access
+- ✅ Protected against web interface credential exposure
+- ⚠️ Not protected against flash memory dumps (requires physical device access)
+- ⚠️ Migration is one-way (cannot retrieve credentials back to plain text)
+
+For production use, always use secure mode (default). Use plain text mode only for development or debugging.
 
 
 
@@ -94,7 +125,7 @@ The device respects your CPAP machine's need for SD card access by keeping uploa
 
 ## Project Status
 
-**Current Version:** v0.3.0
+**Current Version:** v0.3.2
 
 **Status:** ✅ Production Ready
 - Hardware tested and validated

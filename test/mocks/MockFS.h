@@ -28,6 +28,9 @@ public:
     bool operator!=(const String& other) const { return data != other.data; }
     bool operator<(const String& other) const { return data < other.data; }
     
+    bool equals(const String& other) const { return data == other.data; }
+    bool equals(const char* str) const { return data == (str ? str : ""); }
+    
     String& operator=(const char* str) {
         data = str ? str : "";
         return *this;
@@ -243,7 +246,11 @@ public:
         
         isWriteMode = (mode && (strchr(mode, 'w') != nullptr || strchr(mode, 'a') != nullptr));
         
-        if (fs && fs->exists(path)) {
+        if (mode && strchr(mode, 'w') != nullptr) {
+            // Write mode: truncate file (start with empty content)
+            content.clear();
+            isOpen = true;
+        } else if (fs && fs->exists(path)) {
             content = fs->getFileContent(path);
             isOpen = true;
             if (mode && strchr(mode, 'a') != nullptr) {
@@ -251,7 +258,7 @@ public:
                 filePosition = content.size();
             }
         } else if (isWriteMode) {
-            // Write mode: create new file
+            // Write mode for new file
             isOpen = true;
         }
     }

@@ -76,6 +76,13 @@ public:
         }
         return defaultValue;
     }
+    
+    bool operator|(bool defaultValue) const {
+        if (hasValue && !isString) {
+            return longValue != 0;
+        }
+        return defaultValue;
+    }
 };
 
 // Template specializations for as()
@@ -413,6 +420,18 @@ DeserializationError deserializeJson(T& doc, fs::File& file) {
             if (!numStr.empty() && numStr != "-") {
                 long value = std::stol(numStr);
                 doc[key.c_str()] = JsonVariant(value);
+            }
+        } else if (content[pos] == 't' || content[pos] == 'f') {
+            // Boolean value
+            std::string boolStr;
+            while (pos < content.length() && (content[pos] >= 'a' && content[pos] <= 'z')) {
+                boolStr += content[pos++];
+            }
+            
+            if (boolStr == "true") {
+                doc[key.c_str()] = JsonVariant(1);  // true as 1
+            } else if (boolStr == "false") {
+                doc[key.c_str()] = JsonVariant(0);  // false as 0
             }
         }
     }

@@ -1,13 +1,45 @@
 {
+  "_comment_security": "=== CREDENTIAL SECURITY ===",
+  "_comment_security_1": "STORE_CREDENTIALS_PLAIN_TEXT controls how passwords are stored:",
+  "_comment_security_2": "  false (default, recommended): Passwords stored securely in ESP32 flash memory",
+  "_comment_security_3": "    - On first boot, passwords are migrated from this file to flash",
+  "_comment_security_4": "    - This file is updated with '***STORED_IN_FLASH***' placeholders",
+  "_comment_security_5": "    - Web interface shows censored values",
+  "_comment_security_6": "    - Protects against SD card physical access",
+  "_comment_security_7": "  true: Passwords remain visible in this file (use only for development)",
+  "STORE_CREDENTIALS_PLAIN_TEXT": false,
+
+  "_comment_wifi": "=== WIFI CONFIGURATION ===",
   "WIFI_SSID": "YourNetworkName",
   "WIFI_PASS": "YourNetworkPassword",
+
+  "_comment_endpoint": "=== UPLOAD ENDPOINT CONFIGURATION ===",
+  "_comment_endpoint_1": "ENDPOINT format: //hostname_or_ip/share_path",
+  "_comment_endpoint_2": "ENDPOINT_TYPE: SMB (Windows shares, NAS, Samba)",
   "ENDPOINT": "//192.168.1.100/cpap_backups",
   "ENDPOINT_TYPE": "SMB",
   "ENDPOINT_USER": "username",
   "ENDPOINT_PASS": "password",
+
+  "_comment_schedule": "=== UPLOAD SCHEDULE ===",
+  "_comment_schedule_1": "UPLOAD_HOUR: Hour of day (0-23) to perform daily upload",
   "UPLOAD_HOUR": 12,
+
+  "_comment_timing": "=== TIMING CONFIGURATION ===",
+  "_comment_timing_1": "SESSION_DURATION_SECONDS: Max time to hold SD card (default: 5)",
+  "_comment_timing_2": "MAX_RETRY_ATTEMPTS: Upload retry attempts before giving up (default: 3)",
   "SESSION_DURATION_SECONDS": 5,
   "MAX_RETRY_ATTEMPTS": 3,
+
+  "_comment_timezone": "=== TIMEZONE CONFIGURATION ===",
+  "_comment_timezone_1": "GMT_OFFSET_SECONDS: Offset from GMT in seconds (e.g., -28800 for PST)",
+  "_comment_timezone_2": "DAYLIGHT_OFFSET_SECONDS: Daylight saving offset in seconds (e.g., 3600 for DST)",
   "GMT_OFFSET_SECONDS": 0,
-  "DAYLIGHT_OFFSET_SECONDS": 0
+  "DAYLIGHT_OFFSET_SECONDS": 0,
+
+  "_comment_migration": "=== AFTER MIGRATION (Secure Mode) ===",
+  "_comment_migration_1": "After first boot with secure mode, this file will show:",
+  "_comment_migration_2": "  'WIFI_PASS': '***STORED_IN_FLASH***'",
+  "_comment_migration_3": "  'ENDPOINT_PASS': '***STORED_IN_FLASH***'",
+  "_comment_migration_4": "This indicates credentials are stored securely in ESP32 flash memory."
 }
