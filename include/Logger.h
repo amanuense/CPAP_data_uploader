@@ -156,7 +156,6 @@ private:
  */
 #define LOG_INFO(msg) Logger::getInstance().log("[INFO] " msg)
 #define LOG_ERROR(msg) Logger::getInstance().log("[ERROR] " msg)
-#define LOG_DEBUG(msg) Logger::getInstance().log("[DEBUG] " msg)
 #define LOG_WARN(msg) Logger::getInstance().log("[WARN] " msg)
 
 /**
@@ -165,7 +164,26 @@ private:
  */
 #define LOG_INFOF(fmt, ...) Logger::getInstance().logf("[INFO] " fmt, ##__VA_ARGS__)
 #define LOG_ERRORF(fmt, ...) Logger::getInstance().logf("[ERROR] " fmt, ##__VA_ARGS__)
-#define LOG_DEBUGF(fmt, ...) Logger::getInstance().logf("[DEBUG] " fmt, ##__VA_ARGS__)
 #define LOG_WARNF(fmt, ...) Logger::getInstance().logf("[WARN] " fmt, ##__VA_ARGS__)
+
+/**
+ * Debug logging macros - compiled out unless ENABLE_VERBOSE_LOGGING is defined
+ * These are for detailed diagnostics, progress updates, and troubleshooting information
+ * that are useful during development but add overhead in production.
+ * 
+ * To enable: Add -DENABLE_VERBOSE_LOGGING to build_flags in platformio.ini
+ * 
+ * Usage:
+ *   LOG_DEBUG("Detailed operation info");
+ *   LOG_DEBUGF("Processing file: %s", filename);
+ */
+#ifdef ENABLE_VERBOSE_LOGGING
+    #define LOG_DEBUG(msg) Logger::getInstance().log("[DEBUG] " msg)
+    #define LOG_DEBUGF(fmt, ...) Logger::getInstance().logf("[DEBUG] " fmt, ##__VA_ARGS__)
+#else
+    // Compile out debug logging - zero overhead
+    #define LOG_DEBUG(msg) ((void)0)
+    #define LOG_DEBUGF(fmt, ...) ((void)0)
+#endif
 
 #endif // LOGGER_H

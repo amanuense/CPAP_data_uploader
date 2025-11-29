@@ -254,9 +254,9 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
             // Check if folder is already completed
             if (!stateManager->isFolderCompleted(folderName)) {
                 folders.push_back(folderName);
-                LOGF("[FileUploader] Found incomplete DATALOG folder: %s", folderName.c_str());
+                LOG_DEBUGF("[FileUploader] Found incomplete DATALOG folder: %s", folderName.c_str());
             } else {
-                LOGF("[FileUploader] Skipping completed folder: %s", folderName.c_str());
+                LOG_DEBUGF("[FileUploader] Skipping completed folder: %s", folderName.c_str());
             }
         }
         file.close();
@@ -269,7 +269,7 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
         return a > b;  // Descending order (newest first)
     });
     
-    LOGF("[FileUploader] Found %d incomplete DATALOG folders", folders.size());
+    LOG_DEBUGF("[FileUploader] Found %d incomplete DATALOG folders", folders.size());
     
     return folders;
 }
@@ -313,7 +313,7 @@ std::vector<String> FileUploader::scanFolderFiles(fs::FS &sd, const String& fold
     }
     folder.close();
     
-    LOGF("[FileUploader] Found %d .edf files in %s", files.size(), folderPath.c_str());
+    LOG_DEBUGF("[FileUploader] Found %d .edf files in %s", files.size(), folderPath.c_str());
     
     return files;
 }
@@ -335,7 +335,7 @@ std::vector<String> FileUploader::scanRootAndSettingsFiles(fs::FS &sd) {
             // Check if file has changed
             if (stateManager->hasFileChanged(sd, rootFiles[i])) {
                 files.push_back(String(rootFiles[i]));
-                LOGF("[FileUploader] Root file changed: %s", rootFiles[i]);
+                LOG_DEBUGF("[FileUploader] Root file changed: %s", rootFiles[i]);
             }
         }
     }
@@ -351,12 +351,12 @@ std::vector<String> FileUploader::scanRootAndSettingsFiles(fs::FS &sd) {
             // Check if file has changed
             if (stateManager->hasFileChanged(sd, settingsFiles[i])) {
                 files.push_back(String(settingsFiles[i]));
-                LOGF("[FileUploader] SETTINGS file changed: %s", settingsFiles[i]);
+                LOG_DEBUGF("[FileUploader] SETTINGS file changed: %s", settingsFiles[i]);
             }
         }
     }
     
-    LOGF("[FileUploader] Found %d changed root/SETTINGS files", files.size());
+    LOG_DEBUGF("[FileUploader] Found %d changed root/SETTINGS files", files.size());
     
     return files;
 }
@@ -374,13 +374,13 @@ bool FileUploader::startUploadSession(fs::FS &sd) {
     // Apply multiplier for any retry attempt to increase budget
     if (retryCount > 0) {
         int multiplier = retryCount + 1;  // +1 so first retry gets 2x budget
-        LOGF("[FileUploader] Applying retry multiplier: %dx (retry count: %d)", multiplier, retryCount);
+        LOG_DEBUGF("[FileUploader] Applying retry multiplier: %dx (retry count: %d)", multiplier, retryCount);
         budgetManager->startSession(sessionDuration, multiplier);
     } else {
         budgetManager->startSession(sessionDuration);
     }
     
-    LOGF("[FileUploader] Session budget: %lu ms", budgetManager->getRemainingBudgetMs());
+    LOG_DEBUGF("[FileUploader] Session budget: %lu ms", budgetManager->getRemainingBudgetMs());
     
     return true;
 }
@@ -403,7 +403,7 @@ void FileUploader::endUploadSession(fs::FS &sd) {
     
     // Calculate wait time
     unsigned long waitTimeMs = budgetManager->getWaitTimeMs();
-    LOGF("[FileUploader] Wait time before next session: %lu seconds", waitTimeMs / 1000);
+    LOG_DEBUGF("[FileUploader] Wait time before next session: %lu seconds", waitTimeMs / 1000);
     
     // Save state again with updated timestamp
     if (!stateManager->save(sd)) {
@@ -565,7 +565,7 @@ bool FileUploader::uploadDatalogFolder(fs::FS &sd, const String& folderName) {
         
         uploadedCount++;
         LOGF("[FileUploader] Uploaded: %s (%lu bytes)", fileName.c_str(), bytesTransferred);
-        LOGF("[FileUploader] Budget remaining: %lu ms", budgetManager->getRemainingBudgetMs());
+        LOG_DEBUGF("[FileUploader] Budget remaining: %lu ms", budgetManager->getRemainingBudgetMs());
     }
     
     // All files uploaded successfully
@@ -622,7 +622,7 @@ bool FileUploader::uploadSingleFile(fs::FS &sd, const String& filePath) {
     
     // Check if file has changed (checksum comparison)
     if (!stateManager->hasFileChanged(sd, filePath)) {
-        LOG("[FileUploader] File unchanged, skipping upload");
+        LOG_DEBUG("[FileUploader] File unchanged, skipping upload");
         return true;  // Not an error, just no need to upload
     }
     

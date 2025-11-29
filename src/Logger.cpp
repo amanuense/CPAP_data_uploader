@@ -40,7 +40,9 @@ Logger::Logger()
 
     // Initialization successful
     initialized = true;
+    #ifdef ENABLE_VERBOSE_LOGGING
     Serial.println("[LOGGER] Initialized successfully with " + String(bufferSize) + " byte circular buffer");
+    #endif
 }
 
 // Destructor - clean up resources

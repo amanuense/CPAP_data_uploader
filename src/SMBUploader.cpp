@@ -72,9 +72,9 @@ bool SMBUploader::parseEndpoint(const String& endpoint) {
     }
     
     if (smbBasePath.isEmpty()) {
-        LOGF("[SMB] Parsed endpoint - Server: %s, Share: %s", smbServer.c_str(), smbShare.c_str());
+        LOG_DEBUGF("[SMB] Parsed endpoint - Server: %s, Share: %s", smbServer.c_str(), smbShare.c_str());
     } else {
-        LOGF("[SMB] Parsed endpoint - Server: %s, Share: %s, BasePath: %s", 
+        LOG_DEBUGF("[SMB] Parsed endpoint - Server: %s, Share: %s, BasePath: %s", 
              smbServer.c_str(), smbShare.c_str(), smbBasePath.c_str());
     }
     
@@ -136,14 +136,14 @@ bool SMBUploader::connect() {
         int stat_result = smb2_stat(smb2, testPath.c_str(), &st);
         if (stat_result == 0) {
             if (st.smb2_type == SMB2_TYPE_DIRECTORY) {
-                LOGF("[SMB] Base path verified: %s (exists and is accessible)", testPath.c_str());
+                LOG_DEBUGF("[SMB] Base path verified: %s (exists and is accessible)", testPath.c_str());
             } else {
                 LOGF("[SMB] WARNING: Base path exists but is not a directory: %s", testPath.c_str());
             }
         } else {
             const char* error = smb2_get_error(smb2);
-            LOGF("[SMB] WARNING: Cannot access base path %s: %s", testPath.c_str(), error);
-            LOG("[SMB] Will attempt to create it during upload");
+            LOG_DEBUGF("[SMB] WARNING: Cannot access base path %s: %s", testPath.c_str(), error);
+            LOG_DEBUG("[SMB] Will attempt to create it during upload");
         }
     }
     
@@ -199,7 +199,7 @@ bool SMBUploader::createDirectory(const String& path) {
     if (stat_result == 0) {
         // Path exists, check if it's a directory
         if (st.smb2_type == SMB2_TYPE_DIRECTORY) {
-            LOGF("[SMB] Directory already exists: %s", cleanPath.c_str());
+            LOG_DEBUGF("[SMB] Directory already exists: %s", cleanPath.c_str());
             return true;  // Directory already exists
         } else {
             LOGF("[SMB] ERROR: Path exists but is not a directory: %s", cleanPath.c_str());
@@ -208,7 +208,7 @@ bool SMBUploader::createDirectory(const String& path) {
         }
     } else {
         // Stat failed - directory might not exist or we might not have permissions
-        LOGF("[SMB] Directory stat failed for %s (will attempt to create)", cleanPath.c_str());
+        LOG_DEBUGF("[SMB] Directory stat failed for %s (will attempt to create)", cleanPath.c_str());
     }
     
     // Directory doesn't exist, need to create it
@@ -223,7 +223,7 @@ bool SMBUploader::createDirectory(const String& path) {
     }
     
     // Create this directory
-    LOGF("[SMB] Creating directory: %s", cleanPath.c_str());
+    LOG_DEBUGF("[SMB] Creating directory: %s", cleanPath.c_str());
     
     int mkdir_result = smb2_mkdir(smb2, cleanPath.c_str());
     if (mkdir_result < 0) {
@@ -232,15 +232,15 @@ bool SMBUploader::createDirectory(const String& path) {
         // Check if error is because directory already exists
         // STATUS_INVALID_PARAMETER can mean the directory already exists in some SMB implementations
         if (smb2_stat(smb2, cleanPath.c_str(), &st) == 0 && st.smb2_type == SMB2_TYPE_DIRECTORY) {
-            LOGF("[SMB] Directory already exists (mkdir failed but stat succeeded): %s", cleanPath.c_str());
+            LOG_DEBUGF("[SMB] Directory already exists (mkdir failed but stat succeeded): %s", cleanPath.c_str());
             return true;  // Directory exists, treat as success
         }
         
         // If we get STATUS_INVALID_PARAMETER, assume directory exists and continue
         // This is a workaround for SMB servers that return this error for existing directories
         if (strstr(error, "STATUS_INVALID_PARAMETER") != NULL) {
-            LOGF("[SMB] WARNING: mkdir failed with STATUS_INVALID_PARAMETER for %s", cleanPath.c_str());
-            LOG("[SMB] Assuming directory already exists, continuing...");
+            LOG_DEBUGF("[SMB] WARNING: mkdir failed with STATUS_INVALID_PARAMETER for %s", cleanPath.c_str());
+            LOG_DEBUG("[SMB] Assuming directory already exists, continuing...");
             return true;  // Assume directory exists
         }
         
@@ -252,7 +252,7 @@ bool SMBUploader::createDirectory(const String& path) {
         return false;
     }
     
-    LOGF("[SMB] Directory created successfully: %s", cleanPath.c_str());
+    LOG_DEBUGF("[SMB] Directory created successfully: %s", cleanPath.c_str());
     return true;
 }
 
@@ -297,8 +297,8 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
         return false;
     }
     
-    LOGF("[SMB] Uploading %s (%u bytes)", localPath.c_str(), fileSize);
-    LOGF("[SMB] Remote path: %s", fullRemotePath.c_str());
+    LOG_DEBUGF("[SMB] Uploading %s (%u bytes)", localPath.c_str(), fileSize);
+    LOG_DEBUGF("[SMB] Remote path: %s", fullRemotePath.c_str());
     
     // Ensure parent directory exists
     int lastSlash = fullRemotePath.lastIndexOf('/');
@@ -381,7 +381,7 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
         
         // Print progress for large files (every 1MB)
         if (bytesTransferred % (1024 * 1024) == 0) {
-            LOGF("[SMB] Progress: %lu KB / %u KB", bytesTransferred / 1024, fileSize / 1024);
+            LOG_DEBUGF("[SMB] Progress: %lu KB / %u KB", bytesTransferred / 1024, fileSize / 1024);
         }
         
         // Yield to prevent watchdog timeout on large files
@@ -410,9 +410,9 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
     
     if (success) {
         float transferRate = uploadTime > 0 ? (bytesTransferred / 1024.0) / (uploadTime / 1000.0) : 0.0;
-        LOGF("[SMB] Upload complete: %lu bytes transferred in %lu ms (%.2f KB/s)", 
+        LOGF("[SMB] Upload complete: %lu bytes in %lu ms (%.2f KB/s)", 
              bytesTransferred, uploadTime, transferRate);
-        LOGF("[SMB] File size verification: SD=%u bytes, Transferred=%lu bytes, Match=%s",
+        LOG_DEBUGF("[SMB] File size verification: SD=%u bytes, Transferred=%lu bytes, Match=%s",
              fileSize, bytesTransferred, (bytesTransferred == fileSize) ? "YES" : "NO");
         
         if (bytesTransferred != fileSize) {

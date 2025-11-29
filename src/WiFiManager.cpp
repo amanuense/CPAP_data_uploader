@@ -13,7 +13,7 @@ bool WiFiManager::connectStation(const String& ssid, const String& password) {
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && attempts < 30) {
         delay(500);
-        LOG(".");
+        LOG_DEBUG(".");
         attempts++;
     }
 

@@ -186,9 +186,12 @@ build_flags =
 **Logging:**
 ```ini
 build_flags =
-    -DLOG_BUFFER_SIZE=32768      ; 32KB log buffer
-    -DCORE_DEBUG_LEVEL=3         ; Debug level (0-5)
+    -DLOG_BUFFER_SIZE=32768      ; 32KB log buffer (default: 2KB)
+    -DCORE_DEBUG_LEVEL=3         ; ESP32 core debug level (0-5)
+    -DENABLE_VERBOSE_LOGGING     ; Enable debug logs (compiled out by default)
 ```
+
+**Debug Logging:** By default, `LOG_DEBUG()` and `LOG_DEBUGF()` macros are compiled out (zero overhead). Enable with `-DENABLE_VERBOSE_LOGGING` to see detailed diagnostics including progress updates, state details, and troubleshooting information. Saves ~10-15KB flash and ~35-75ms per upload session when disabled.
 
 ### Memory Usage
 

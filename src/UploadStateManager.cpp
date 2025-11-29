@@ -75,7 +75,7 @@ String UploadStateManager::calculateChecksum(fs::FS &sd, const String& filePath)
     
     // Verify we read the expected amount
     if (totalBytesRead != expectedSize) {
-        LOGF("[UploadStateManager] WARNING: Checksum size mismatch for %s (read %u bytes, expected %u bytes)", 
+        LOG_DEBUGF("[UploadStateManager] WARNING: Checksum size mismatch for %s (read %u bytes, expected %u bytes)", 
              filePath.c_str(), totalBytesRead, expectedSize);
     }
     
@@ -195,7 +195,7 @@ bool UploadStateManager::loadState(fs::FS &sd) {
         jsonCapacity = 4096;
     }
     
-    LOGF("[UploadStateManager] Allocating %u bytes for JSON document (file size: %u bytes)", 
+    LOG_DEBUGF("[UploadStateManager] Allocating %u bytes for JSON document (file size: %u bytes)", 
          jsonCapacity, fileSize);
     
     DynamicJsonDocument doc(jsonCapacity);
@@ -271,10 +271,10 @@ bool UploadStateManager::loadState(fs::FS &sd) {
     currentRetryCount = doc["current_retry_count"] | 0;
     
     LOG("[UploadStateManager] State file loaded successfully");
-    LOGF("[UploadStateManager]   Tracked files: %u", fileChecksums.size());
-    LOGF("[UploadStateManager]   Completed folders: %u", completedDatalogFolders.size());
+    LOG_DEBUGF("[UploadStateManager]   Tracked files: %u", fileChecksums.size());
+    LOG_DEBUGF("[UploadStateManager]   Completed folders: %u", completedDatalogFolders.size());
     if (!currentRetryFolder.isEmpty()) {
-        LOGF("[UploadStateManager]   Current retry folder: %s (attempt %d)", 
+        LOG_DEBUGF("[UploadStateManager]   Current retry folder: %s (attempt %d)", 
              currentRetryFolder.c_str(), currentRetryCount);
     }
     
@@ -296,7 +296,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
         jsonCapacity = 4096;
     }
     
-    LOGF("[UploadStateManager] Allocating %u bytes for JSON document (%u folders, %u files)", 
+    LOG_DEBUGF("[UploadStateManager] Allocating %u bytes for JSON document (%u folders, %u files)", 
          jsonCapacity, completedDatalogFolders.size(), fileChecksums.size());
     
     // Allocate JSON document with calculated capacity
@@ -353,7 +353,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     verifyFile.close();
     
     if (verifySize != bytesWritten) {
-        LOGF("[UploadStateManager] ERROR: State file size mismatch (wrote %u bytes, file is %u bytes)", 
+        LOG_DEBUGF("[UploadStateManager] ERROR: State file size mismatch (wrote %u bytes, file is %u bytes)", 
              bytesWritten, verifySize);
         sd.remove(tempFilePath);
         return false;
@@ -362,7 +362,7 @@ bool UploadStateManager::saveState(fs::FS &sd) {
     // Remove old state file if it exists
     if (sd.exists(stateFilePath)) {
         if (!sd.remove(stateFilePath)) {
-            LOG("[UploadStateManager] WARNING: Failed to remove old state file");
+            LOG_DEBUG("[UploadStateManager] WARNING: Failed to remove old state file");
             // Continue anyway - rename might still work
         }
     }
@@ -374,6 +374,6 @@ bool UploadStateManager::saveState(fs::FS &sd) {
         return false;
     }
     
-    LOGF("[UploadStateManager] State file saved successfully (%u bytes)", bytesWritten);
+    LOG_DEBUGF("[UploadStateManager] State file saved successfully (%u bytes)", bytesWritten);
     return true;
 }

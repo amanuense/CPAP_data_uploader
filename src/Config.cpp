@@ -33,15 +33,15 @@ bool Config::initPreferences() {
         return false;
     }
     
-    LOG("Preferences initialized successfully");
-    LOGF("Using Preferences namespace: %s", PREFS_NAMESPACE);
+    LOG_DEBUG("Preferences initialized successfully");
+    LOG_DEBUGF("Using Preferences namespace: %s", PREFS_NAMESPACE);
     return true;
 }
 
 void Config::closePreferences() {
     // Close Preferences to free resources
     preferences.end();
-    LOG("Preferences closed");
+    LOG_DEBUG("Preferences closed");
 }
 
 bool Config::storeCredential(const char* key, const String& value) {
@@ -59,7 +59,7 @@ bool Config::storeCredential(const char* key, const String& value) {
         return false;
     }
     
-    LOGF("Credential '%s' stored successfully in Preferences (%d bytes)", key, written);
+    LOG_DEBUGF("Credential '%s' stored successfully in Preferences (%d bytes)", key, written);
     return true;
 }
 
@@ -69,14 +69,14 @@ String Config::loadCredential(const char* key, const String& defaultValue) {
     
     // Check if we got the default value (key not found)
     if (value == defaultValue) {
-        LOGF("WARNING: Credential '%s' not found in Preferences, using default", key);
+        LOG_DEBUGF("WARNING: Credential '%s' not found in Preferences, using default", key);
     } else {
         // Validate that the retrieved credential is not empty
         if (value.isEmpty()) {
-            LOGF("WARNING: Credential '%s' retrieved from Preferences is empty, using default", key);
+            LOG_DEBUGF("WARNING: Credential '%s' retrieved from Preferences is empty, using default", key);
             return defaultValue;
         }
-        LOGF("Credential '%s' loaded successfully from Preferences", key);
+        LOG_DEBUGF("Credential '%s' loaded successfully from Preferences", key);
     }
     
     return value;
@@ -88,7 +88,7 @@ bool Config::isCensored(const String& value) {
 }
 
 bool Config::censorConfigFile(fs::FS &sd) {
-    LOG("Starting config file censoring operation");
+    LOG_DEBUG("Starting config file censoring operation");
     
     // Read existing config.json
     File configFile = sd.open("/config.json", FILE_READ);
@@ -111,7 +111,7 @@ bool Config::censorConfigFile(fs::FS &sd) {
     doc["WIFI_PASS"] = CENSORED_VALUE;
     doc["ENDPOINT_PASS"] = CENSORED_VALUE;
     
-    LOG("Credential fields updated with censored values");
+    LOG_DEBUG("Credential fields updated with censored values");
     
     // Write updated JSON back to SD card
     configFile = sd.open("/config.json", FILE_WRITE);
@@ -129,8 +129,8 @@ bool Config::censorConfigFile(fs::FS &sd) {
         return false;
     }
     
-    LOGF("Config file censored successfully (%d bytes written)", bytesWritten);
-    LOG("Credentials are now stored securely in flash memory");
+    LOG_DEBUGF("Config file censored successfully (%d bytes written)", bytesWritten);
+    LOG_DEBUG("Credentials are now stored securely in flash memory");
     
     return true;
 }
@@ -157,7 +157,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     // Step 2: Store WIFI_PASS in Preferences
     bool wifiStored = false;
     if (!wifiPassword.isEmpty()) {
-        LOG("Storing WiFi password in Preferences...");
+        LOG_DEBUG("Storing WiFi password in Preferences...");
         wifiStored = storeCredential(PREFS_KEY_WIFI_PASS, wifiPassword);
         
         if (!wifiStored) {
@@ -172,7 +172,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     // Step 3: Store ENDPOINT_PASS in Preferences
     bool endpointStored = false;
     if (!endpointPassword.isEmpty()) {
-        LOG("Storing endpoint password in Preferences...");
+        LOG_DEBUG("Storing endpoint password in Preferences...");
         endpointStored = storeCredential(PREFS_KEY_ENDPOINT_PASS, endpointPassword);
         
         if (!endpointStored) {
@@ -185,7 +185,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     }
     
     // Step 4: Verify credentials were stored correctly by reading back
-    LOG("Verifying stored credentials...");
+    LOG_DEBUG("Verifying stored credentials...");
     bool verificationPassed = true;
     
     if (!wifiPassword.isEmpty()) {
@@ -194,7 +194,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
             LOG("ERROR: WiFi password verification failed - stored value does not match");
             verificationPassed = false;
         } else {
-            LOG("WiFi password verification: PASSED");
+            LOG_DEBUG("WiFi password verification: PASSED");
         }
     }
     
@@ -204,7 +204,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
             LOG("ERROR: Endpoint password verification failed - stored value does not match");
             verificationPassed = false;
         } else {
-            LOG("Endpoint password verification: PASSED");
+            LOG_DEBUG("Endpoint password verification: PASSED");
         }
     }
     
@@ -214,10 +214,10 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
         return false;
     }
     
-    LOG("All credentials verified successfully");
+    LOG_DEBUG("All credentials verified successfully");
     
     // Step 5: Censor config.json after successful Preferences storage
-    LOG("Censoring config.json file...");
+    LOG_DEBUG("Censoring config.json file...");
     if (!censorConfigFile(sd)) {
         LOG("ERROR: Failed to censor config.json");
         LOG("WARNING: Credentials are stored in Preferences but config.json still contains plain text");
@@ -262,13 +262,13 @@ bool Config::loadFromSD(fs::FS &sd) {
     storePlainText = doc["STORE_CREDENTIALS_PLAIN_TEXT"] | false;
     
     if (storePlainText) {
-        LOG("========================================");
-        LOG("PLAIN TEXT MODE: Credentials will be stored in config.json");
-        LOG("========================================");
+        LOG_DEBUG("========================================");
+        LOG_DEBUG("PLAIN TEXT MODE: Credentials will be stored in config.json");
+        LOG_DEBUG("========================================");
     } else {
-        LOG("========================================");
-        LOG("SECURE MODE: Credentials will be stored in flash memory");
-        LOG("========================================");
+        LOG_DEBUG("========================================");
+        LOG_DEBUG("SECURE MODE: Credentials will be stored in flash memory");
+        LOG_DEBUG("========================================");
     }
     
     // Step 3: Load non-credential configuration fields
@@ -287,16 +287,16 @@ bool Config::loadFromSD(fs::FS &sd) {
     // Step 4: Load credentials based on storage mode
     if (storePlainText) {
         // Plain text mode: Load credentials directly from config.json
-        LOG("Loading credentials from config.json (plain text mode)");
+        LOG_DEBUG("Loading credentials from config.json (plain text mode)");
         wifiPassword = doc["WIFI_PASS"] | "";
         endpointPassword = doc["ENDPOINT_PASS"] | "";
         credentialsInFlash = false;
         
-        LOG("Credentials loaded from config.json");
+        LOG_DEBUG("Credentials loaded from config.json");
         LOG("WARNING: Credentials are stored in plain text");
     } else {
         // Secure mode: Check if credentials are censored and handle accordingly
-        LOG("Checking credential storage status...");
+        LOG_DEBUG("Checking credential storage status...");
         
         // Initialize Preferences for secure storage
         if (!initPreferences()) {
@@ -317,14 +317,14 @@ bool Config::loadFromSD(fs::FS &sd) {
             
             if (wifiCensored && endpointCensored) {
                 // Both credentials are censored - load from Preferences
-                LOG("Credentials are censored in config.json");
-                LOG("Loading credentials from flash memory (Preferences)...");
+                LOG_DEBUG("Credentials are censored in config.json");
+                LOG_DEBUG("Loading credentials from flash memory (Preferences)...");
                 
                 wifiPassword = loadCredential(PREFS_KEY_WIFI_PASS, "");
                 endpointPassword = loadCredential(PREFS_KEY_ENDPOINT_PASS, "");
                 credentialsInFlash = true;
                 
-                LOG("Credentials loaded from flash memory");
+                LOG_DEBUG("Credentials loaded from flash memory");
                 LOG("Credential storage: SECURE (flash memory)");
                 
             } else if (!wifiCensored && !endpointCensored) {
@@ -378,8 +378,8 @@ bool Config::loadFromSD(fs::FS &sd) {
     if (isValid) {
         LOG("========================================");
         LOG("Configuration loaded successfully");
-        LOGF("Storage mode: %s", storePlainText ? "PLAIN TEXT" : "SECURE");
-        LOGF("Credentials in flash: %s", credentialsInFlash ? "YES" : "NO");
+        LOG_DEBUGF("Storage mode: %s", storePlainText ? "PLAIN TEXT" : "SECURE");
+        LOG_DEBUGF("Credentials in flash: %s", credentialsInFlash ? "YES" : "NO");
         LOG("========================================");
     } else {
         LOG("ERROR: Configuration validation failed");

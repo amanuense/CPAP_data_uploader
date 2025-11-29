@@ -81,8 +81,10 @@ bool TimeBudgetManager::canUploadFile(unsigned long fileSize) {
     unsigned long remainingBudget = getRemainingBudgetMs();
     
     // Log estimation details for debugging
+    #ifdef ENABLE_VERBOSE_LOGGING
     Serial.printf("[Budget] File size: %lu bytes, Estimated time: %lu ms, Remaining: %lu ms, Rate: %lu B/s\n",
                   fileSize, estimatedTime, remainingBudget, transmissionRateBytesPerSec);
+    #endif
     
     return estimatedTime <= remainingBudget;
 }

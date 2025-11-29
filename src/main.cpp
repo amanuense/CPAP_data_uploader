@@ -68,8 +68,8 @@ void setup() {
     }
 
     LOG("Configuration loaded successfully");
-    LOGF("WiFi SSID: %s", config.getWifiSSID().c_str());
-    LOGF("Endpoint: %s", config.getEndpoint().c_str());
+    LOG_DEBUGF("WiFi SSID: %s", config.getWifiSSID().c_str());
+    LOG_DEBUGF("Endpoint: %s", config.getEndpoint().c_str());
 
     // Release SD card back to CPAP machine
     sdManager.releaseControl();
@@ -107,10 +107,10 @@ void setup() {
     // Trigger initial time sync check
     if (uploader->shouldUpload()) {
         LOG("Time synchronized successfully");
-        LOG("Currently in upload window - will begin upload shortly");
+        LOG_DEBUG("Currently in upload window - will begin upload shortly");
     } else {
-        LOG("Time sync status unknown or not in upload window");
-        LOG("Will retry NTP sync every 5 minutes if needed");
+        LOG_DEBUG("Time sync status unknown or not in upload window");
+        LOG_DEBUG("Will retry NTP sync every 5 minutes if needed");
         lastNtpSyncAttempt = millis();
     }
 
@@ -173,7 +173,7 @@ void loop() {
                         testWebServer->updateManagers(uploader->getStateManager(),
                                                      uploader->getBudgetManager(),
                                                      uploader->getScheduleManager());
-                        LOG("TestWebServer manager references updated");
+                        LOG_DEBUG("TestWebServer manager references updated");
                     }
                 } else {
                     LOG("ERROR: Failed to reinitialize uploader");
@@ -231,7 +231,7 @@ void loop() {
                 lastWifiReconnectAttempt = currentTime;
                 return;
             }
-            LOG("WiFi reconnected successfully");
+            LOG_DEBUG("WiFi reconnected successfully");
             
             // Reset NTP sync attempt timer to trigger immediate sync after reconnection
             lastNtpSyncAttempt = 0;
@@ -245,7 +245,7 @@ void loop() {
     if (uploader) {
         unsigned long currentTime = millis();
         if (currentTime - lastNtpSyncAttempt >= NTP_RETRY_INTERVAL_MS) {
-            LOG("Periodic NTP synchronization check...");
+            LOG_DEBUG("Periodic NTP synchronization check...");
             // Note: shouldUpload() checks time sync internally
             // We just want to trigger the check periodically
             lastNtpSyncAttempt = currentTime;
@@ -260,7 +260,7 @@ void loop() {
         }
         // Wait period over, clear the flag and continue
         budgetExhaustedRetry = false;
-        LOG("Budget exhaustion wait period complete, resuming upload...");
+        LOG_DEBUG("Budget exhaustion wait period complete, resuming upload...");
     }
 
     // Check if it's time to upload (scheduled window - once per day)
@@ -311,8 +311,8 @@ void loop() {
     
     if (uploadSuccess) {
         LOG("=== Upload Session Completed Successfully ===");
-        LOG("All pending files have been uploaded");
-        LOG("Next upload will occur at scheduled time tomorrow");
+        LOG_DEBUG("All pending files have been uploaded");
+        LOG_DEBUG("Next upload will occur at scheduled time tomorrow");
         // The ScheduleManager has already marked upload as completed
         // No need to set retry timer - will wait for next scheduled time
     } else {
@@ -324,7 +324,7 @@ void loop() {
         unsigned long waitTime = sessionDuration * 2;
         
         LOGF("Waiting %lu seconds before retry...", waitTime / 1000);
-        LOG("This allows CPAP machine priority access to SD card");
+        LOG_DEBUG("This allows CPAP machine priority access to SD card");
         
         nextUploadRetryTime = millis() + waitTime;
         budgetExhaustedRetry = true;
