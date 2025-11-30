@@ -7,6 +7,10 @@ volatile bool g_triggerUploadFlag = false;
 volatile bool g_resetStateFlag = false;
 volatile bool g_scanNowFlag = false;
 
+// External retry timing variables (defined in main.cpp)
+extern unsigned long nextUploadRetryTime;
+extern bool budgetExhaustedRetry;
+
 // Constructor
 TestWebServer::TestWebServer(Config* cfg, UploadStateManager* state,
                              TimeBudgetManager* budget, ScheduleManager* schedule)
@@ -166,14 +170,29 @@ void TestWebServer::handleRoot() {
             int retryCount = stateManager->getCurrentRetryCount();
             int maxRetries = config ? config->getMaxRetryAttempts() : 3;
             
-            html += "<h2 style='color: #cc6600;'>⚠️ Upload Retry in Progress</h2>";
+            html += "<h2 style='color: #cc6600;'>WARNING: Upload Retry in Progress</h2>";
             html += "<div style='background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin: 10px 0;'>";
             html += "<p><strong>Folder:</strong> " + retryFolder + "</p>";
             html += "<p><strong>Attempt:</strong> " + String(retryCount + 1) + " of " + String(maxRetries) + "</p>";
             html += "<p><strong>Reason:</strong> Upload session time budget exhausted before completing all files.</p>";
             
+            // Show retry wait time if waiting
+            if (budgetExhaustedRetry && nextUploadRetryTime > millis()) {
+                unsigned long remainingMs = nextUploadRetryTime - millis();
+                unsigned long remainingSeconds = remainingMs / 1000;
+                unsigned long remainingMinutes = remainingSeconds / 60;
+                
+                html += "<p><strong>Next Retry In:</strong> ";
+                if (remainingMinutes > 0) {
+                    html += String(remainingMinutes) + " minutes " + String(remainingSeconds % 60) + " seconds";
+                } else {
+                    html += String(remainingSeconds) + " seconds";
+                }
+                html += "</p>";
+            }
+            
             if (retryCount >= 2) {
-                html += "<p style='color: #cc0000;'><strong>⚠️ Multiple retries detected!</strong></p>";
+                html += "<p style='color: #cc0000;'><strong>WARNING: Multiple retries detected!</strong></p>";
                 html += "<p>Consider increasing <code>SESSION_DURATION_SECONDS</code> in config.json if uploads consistently fail.</p>";
                 html += "<p>Current session duration: " + String(config ? config->getSessionDurationSeconds() : 0) + " seconds (active time)</p>";
             }
@@ -295,6 +314,15 @@ void TestWebServer::handleStatus() {
         json += ",\"max_retry_attempts\":" + String(config->getMaxRetryAttempts());
         json += ",\"boot_delay_seconds\":" + String(config->getBootDelaySeconds());
         json += ",\"sd_release_interval_seconds\":" + String(config->getSdReleaseIntervalSeconds());
+    }
+    
+    // Add retry timing information
+    if (budgetExhaustedRetry && nextUploadRetryTime > millis()) {
+        unsigned long remainingMs = nextUploadRetryTime - millis();
+        json += ",\"retry_wait_active\":true";
+        json += ",\"retry_wait_remaining_seconds\":" + String(remainingMs / 1000);
+    } else {
+        json += ",\"retry_wait_active\":false";
     }
     
     // Add recommendations if retries are happening

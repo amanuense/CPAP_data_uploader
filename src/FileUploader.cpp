@@ -214,11 +214,16 @@ bool FileUploader::uploadNewFiles(SDCardManager* sdManager, bool forceUpload) {
         return false;
     }
     
-    // Check if it's time to upload (unless forced)
-    if (!forceUpload && !shouldUpload()) {
+    // Check if it's time to upload (unless forced or retrying incomplete folders)
+    bool hasIncompleteFolders = (stateManager->getIncompleteFoldersCount() > 0);
+    if (!forceUpload && !hasIncompleteFolders && !shouldUpload()) {
         unsigned long secondsUntilNext = scheduleManager->getSecondsUntilNextUpload();
         LOG_DEBUGF("[FileUploader] Not upload time yet. Next upload in %lu hours", secondsUntilNext / 3600);
         return false;
+    }
+    
+    if (hasIncompleteFolders && !forceUpload) {
+        LOG("[FileUploader] Resuming upload for incomplete folders (retry)");
     }
     
     if (forceUpload) {
@@ -309,9 +314,11 @@ bool FileUploader::uploadNewFiles(SDCardManager* sdManager, bool forceUpload) {
     // End upload session and save state
     endUploadSession(sd);
     
-    LOG_DEBUGF("[FileUploader] Upload session complete. Files uploaded: %s", anyUploaded ? "Yes" : "No");
+    // Return true only if all folders are completed
+    bool allComplete = (stateManager->getIncompleteFoldersCount() == 0);
+    LOG_DEBUGF("[FileUploader] Upload session complete. All folders done: %s", allComplete ? "Yes" : "No");
     
-    return anyUploaded;
+    return allComplete;
 }
 
 // Scan SD card for pending folders without uploading
@@ -511,11 +518,18 @@ void FileUploader::endUploadSession(fs::FS &sd) {
         LOG_WARN("[FileUploader] Upload progress may be lost - will retry from last saved state");
     }
     
-    // Update last upload timestamp
-    time_t now;
-    time(&now);
-    stateManager->setLastUploadTimestamp((unsigned long)now);
-    scheduleManager->markUploadCompleted();
+    // Only mark upload as completed if there are no incomplete folders
+    bool hasIncompleteFolders = (stateManager->getIncompleteFoldersCount() > 0);
+    if (!hasIncompleteFolders) {
+        // Update last upload timestamp
+        time_t now;
+        time(&now);
+        stateManager->setLastUploadTimestamp((unsigned long)now);
+        scheduleManager->markUploadCompleted();
+        LOG("[FileUploader] All folders completed - upload session marked as done");
+    } else {
+        LOG("[FileUploader] Incomplete folders remain - upload will retry");
+    }
     
     // Calculate wait time
     unsigned long waitTimeMs = budgetManager->getWaitTimeMs();
@@ -531,10 +545,20 @@ void FileUploader::endUploadSession(fs::FS &sd) {
 // Upload all files in a DATALOG folder
 bool FileUploader::uploadDatalogFolder(SDCardManager* sdManager, const String& folderName) {
     fs::FS &sd = sdManager->getFS();
-    LOGF("[FileUploader] Uploading DATALOG folder: %s", folderName.c_str());
+    
+    // Get retry count BEFORE setting current folder (in case it's a different folder)
+    String currentRetryFolder = stateManager->getCurrentRetryFolder();
+    int retryCount = (currentRetryFolder == folderName) ? stateManager->getCurrentRetryCount() : 0;
     
     // Set this as the current retry folder
     stateManager->setCurrentRetryFolder(folderName);
+    
+    // Log appropriately based on retry status
+    if (retryCount > 0) {
+        LOGF("[FileUploader] RETRY ATTEMPT %d: Uploading DATALOG folder: %s", retryCount + 1, folderName.c_str());
+    } else {
+        LOGF("[FileUploader] Uploading DATALOG folder: %s", folderName.c_str());
+    }
     
     // Build folder path
     String folderPath = "/DATALOG/" + folderName;
@@ -602,6 +626,15 @@ bool FileUploader::uploadDatalogFolder(SDCardManager* sdManager, const String& f
         String remotePath = folderPath + "/" + fileName;
         unsigned long bytesTransferred = 0;
         unsigned long uploadStartTime = millis();
+        
+        // Log file upload with retry information if applicable
+        int currentRetryCount = stateManager->getCurrentRetryCount();
+        if (currentRetryCount > 0) {
+            LOGF("[FileUploader] RETRY ATTEMPT %d: Uploading file: %s (%lu bytes)", 
+                 currentRetryCount + 1, fileName.c_str(), fileSize);
+        } else {
+            LOGF("[FileUploader] Uploading file: %s (%lu bytes)", fileName.c_str(), fileSize);
+        }
         
         bool uploadSuccess = false;
         

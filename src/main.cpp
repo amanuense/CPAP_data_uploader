@@ -26,8 +26,11 @@ TestWebServer* testWebServer = nullptr;
 // ============================================================================
 unsigned long lastNtpSyncAttempt = 0;
 const unsigned long NTP_RETRY_INTERVAL_MS = 5 * 60 * 1000;  // 5 minutes
+
+// Retry timing (accessible by web server)
 unsigned long nextUploadRetryTime = 0;
 bool budgetExhaustedRetry = false;  // True if waiting due to budget exhaustion
+
 unsigned long lastWifiReconnectAttempt = 0;
 unsigned long lastUploadCheck = 0;
 unsigned long lastSdCardRetry = 0;
@@ -254,6 +257,23 @@ void loop() {
                 LOG("Forced upload completed successfully");
             } else {
                 LOG("Forced upload incomplete (budget exhausted or errors)");
+                
+                // Set retry timing for incomplete upload
+                unsigned long sessionDuration = config.getSessionDurationSeconds() * 1000;
+                unsigned long waitTime = sessionDuration * 2;
+                
+                nextUploadRetryTime = millis() + waitTime;
+                budgetExhaustedRetry = true;
+                
+                // Log wait time information
+                unsigned long waitSeconds = waitTime / 1000;
+                unsigned long waitMinutes = waitSeconds / 60;
+                if (waitMinutes > 0) {
+                    LOGF("Waiting %lu minutes %lu seconds before retry...", waitMinutes, waitSeconds % 60);
+                } else {
+                    LOGF("Waiting %lu seconds before retry...", waitSeconds);
+                }
+                LOG_DEBUG("This allows CPAP machine priority access to SD card");
             }
         } else {
             LOG_ERROR("Cannot start upload - SD card in use by CPAP");
@@ -300,22 +320,24 @@ void loop() {
         if (millis() < nextUploadRetryTime) {
             return;  // Non-blocking wait
         }
-        // Wait period over, clear the flag and continue
+        // Wait period over, clear the flag and trigger retry
         budgetExhaustedRetry = false;
-        LOG_DEBUG("Budget exhaustion wait period complete, resuming upload...");
-    }
-
-    // Check if it's time to upload (scheduled window - once per day)
-    // Use non-blocking check every 60 seconds
-    unsigned long currentTime = millis();
-    if (currentTime - lastUploadCheck < 60000) {
-        return;  // Don't check too frequently
-    }
-    lastUploadCheck = currentTime;
-    
-    if (!uploader || !uploader->shouldUpload()) {
-        // Not upload time yet
-        return;
+        LOG("Budget exhaustion wait period complete, resuming upload...");
+        
+        // Proceed to retry upload (skip schedule check since we have incomplete folders)
+    } else {
+        // Not in retry mode, check if it's time for scheduled upload
+        // Use non-blocking check every 60 seconds
+        unsigned long currentTime = millis();
+        if (currentTime - lastUploadCheck < 60000) {
+            return;  // Don't check too frequently
+        }
+        lastUploadCheck = currentTime;
+        
+        if (!uploader || !uploader->shouldUpload()) {
+            // Not upload time yet
+            return;
+        }
     }
 
     LOG("=== Upload Window Active ===");
@@ -366,11 +388,18 @@ void loop() {
         unsigned long sessionDuration = config.getSessionDurationSeconds() * 1000;
         unsigned long waitTime = sessionDuration * 2;
         
-        LOGF("Waiting %lu seconds before retry...", waitTime / 1000);
-        LOG_DEBUG("This allows CPAP machine priority access to SD card");
-        
         nextUploadRetryTime = millis() + waitTime;
         budgetExhaustedRetry = true;
+        
+        // Log wait time information
+        unsigned long waitSeconds = waitTime / 1000;
+        unsigned long waitMinutes = waitSeconds / 60;
+        if (waitMinutes > 0) {
+            LOGF("Waiting %lu minutes %lu seconds before retry...", waitMinutes, waitSeconds % 60);
+        } else {
+            LOGF("Waiting %lu seconds before retry...", waitSeconds);
+        }
+        LOG_DEBUG("This allows CPAP machine priority access to SD card");
         
         // Note: We stay in the same upload window (same day)
         // The ScheduleManager will NOT mark upload as completed
