@@ -23,6 +23,8 @@ This package contains precompiled firmware for automatically uploading CPAP data
 - Switch 2: ON
 
 **Windows:**
+1. Find your COM port (see "Finding Your Serial Port" below)
+2. Run the upload script with your COM port:
 ```cmd
 upload.bat COM3
 ```
@@ -32,7 +34,7 @@ upload.bat COM3
 ./upload.sh /dev/ttyUSB0
 ```
 
-Replace `COM3` or `/dev/ttyUSB0` with your actual serial port (see "Finding Your Serial Port" below).
+Replace `COM3` or `/dev/ttyUSB0` with your actual serial port.
 
 ### 2. Create Configuration File
 
@@ -224,6 +226,8 @@ Insert the SD card into your CPAP machine's SD slot and power it on. The device 
 2. Expand "Ports (COM & LPT)"
 3. Look for "USB-SERIAL CH340" or "Silicon Labs CP210x"
 4. Note the COM port number (e.g., COM3, COM4)
+
+**Tip:** If you run `upload.bat` without arguments, it will show detailed instructions for finding your COM port.
 
 ### macOS
 ```bash

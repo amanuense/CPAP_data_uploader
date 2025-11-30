@@ -12,14 +12,39 @@ set ESPTOOL=esptool.exe
 
 REM Check if port is provided
 if "%~1"=="" (
+    echo ========================================
+    echo ESP32 Firmware Upload Tool
+    echo ========================================
+    echo.
     echo Error: Serial port not specified
     echo.
     echo Usage: %~nx0 ^<COM_PORT^>
     echo.
     echo Example: %~nx0 COM3
     echo.
-    echo Available ports:
-    wmic path Win32_SerialPort get DeviceID,Description 2>nul
+    echo ========================================
+    echo How to find your COM port:
+    echo ========================================
+    echo.
+    echo 1. Open Device Manager
+    echo    - Press Win+X and select "Device Manager"
+    echo    - Or search for "Device Manager" in Start menu
+    echo.
+    echo 2. Expand "Ports (COM ^& LPT^)"
+    echo.
+    echo 3. Look for one of these:
+    echo    - USB-SERIAL CH340 (COMx^)
+    echo    - Silicon Labs CP210x USB to UART Bridge (COMx^)
+    echo    - USB Serial Port (COMx^)
+    echo.
+    echo 4. Note the COM port number (e.g., COM3, COM4, COM5^)
+    echo.
+    echo 5. Run this script again with your COM port:
+    echo    %~nx0 COM3
+    echo.
+    echo ========================================
+    echo.
+    pause
     exit /b 1
 )
 
@@ -48,7 +73,7 @@ echo Firmware: %FIRMWARE_FILE%
 echo Baud rate: %BAUD_RATE%
 echo.
 
-%ESPTOOL% --chip %CHIP% --port %PORT% --baud %BAUD_RATE% write_flash %FLASH_OFFSET% %FIRMWARE_FILE%
+%ESPTOOL% --chip %CHIP% --port %PORT% --baud %BAUD_RATE% write-flash %FLASH_OFFSET% %FIRMWARE_FILE%
 
 if errorlevel 1 (
     echo.
