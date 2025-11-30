@@ -348,8 +348,10 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
     
     File root = sd.open("/DATALOG");
     if (!root) {
-        LOG_WARN("[FileUploader] DATALOG folder not found - no therapy data to upload");
-        return folders;
+        LOG_ERROR("[FileUploader] Cannot open /DATALOG folder");
+        LOG_ERROR("[FileUploader] SD card may be in use by CPAP or not properly mounted");
+        LOG_ERROR("[FileUploader] If DATALOG exists, this scan will be retried");
+        return folders;  // Return empty - indicates scan failure
     }
     
     if (!root.isDirectory()) {
@@ -388,20 +390,27 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
         return a > b;  // Descending order (newest first)
     });
     
-    LOG_DEBUGF("[FileUploader] Found %d incomplete DATALOG folders", folders.size());
+    if (folders.empty()) {
+        LOG("[FileUploader] No incomplete DATALOG folders found");
+        LOG_DEBUG("[FileUploader] Either all folders are uploaded or DATALOG is empty");
+    } else {
+        LOG_DEBUGF("[FileUploader] Found %d incomplete DATALOG folders", folders.size());
+    }
     
     return folders;
 }
 
 // Scan files in a specific folder
+// Returns empty vector on error - caller must check if scan was successful
 std::vector<String> FileUploader::scanFolderFiles(fs::FS &sd, const String& folderPath) {
     std::vector<String> files;
     
     File folder = sd.open(folderPath);
     if (!folder) {
         LOG_ERRORF("[FileUploader] Failed to open folder: %s", folderPath.c_str());
-        LOG_ERROR("[FileUploader] SD card may be experiencing read errors");
-        return files;
+        LOG_ERROR("[FileUploader] SD card may be in use by CPAP or experiencing read errors");
+        LOG_ERROR("[FileUploader] This folder will be retried in the next upload session");
+        return files;  // Return empty - caller should treat as error
     }
     
     if (!folder.isDirectory()) {
@@ -563,11 +572,45 @@ bool FileUploader::uploadDatalogFolder(SDCardManager* sdManager, const String& f
     // Build folder path
     String folderPath = "/DATALOG/" + folderName;
     
+    // Verify folder exists before scanning
+    File folderCheck = sd.open(folderPath);
+    if (!folderCheck) {
+        LOG_ERRORF("[FileUploader] Cannot access folder: %s", folderPath.c_str());
+        LOG_ERROR("[FileUploader] SD card may be in use by CPAP machine");
+        LOG_ERROR("[FileUploader] Folder will be retried in next upload session");
+        stateManager->incrementCurrentRetryCount();
+        stateManager->save(sd);
+        return false;  // Treat as error, not completion
+    }
+    
+    if (!folderCheck.isDirectory()) {
+        LOG_ERRORF("[FileUploader] Path is not a directory: %s", folderPath.c_str());
+        folderCheck.close();
+        stateManager->incrementCurrentRetryCount();
+        stateManager->save(sd);
+        return false;
+    }
+    folderCheck.close();
+    
     // Scan for files in the folder
     std::vector<String> files = scanFolderFiles(sd, folderPath);
     
     if (files.empty()) {
-        LOG_WARN("[FileUploader] No .edf files found in folder");
+        // Need to distinguish between "truly empty" and "scan failed"
+        // Try to open the folder again to verify it's accessible
+        File verifyFolder = sd.open(folderPath);
+        if (!verifyFolder) {
+            LOG_ERROR("[FileUploader] Folder scan returned empty but folder is not accessible");
+            LOG_ERROR("[FileUploader] This indicates SD card read error or CPAP interference");
+            LOG_ERROR("[FileUploader] Folder will be retried in next upload session");
+            stateManager->incrementCurrentRetryCount();
+            stateManager->save(sd);
+            return false;  // Treat as error
+        }
+        verifyFolder.close();
+        
+        // Folder is accessible but truly empty
+        LOG_WARN("[FileUploader] No .edf files found in folder (folder is empty)");
         // Mark as completed even if empty
         stateManager->markFolderCompleted(folderName);
         stateManager->clearCurrentRetry();
