@@ -170,7 +170,7 @@ void TestWebServer::handleRoot() {
             int retryCount = stateManager->getCurrentRetryCount();
             int maxRetries = config ? config->getMaxRetryAttempts() : 3;
             
-            html += "<h2 style='color: #cc6600;'>WARNING: Upload Retry in Progress</h2>";
+            html += "<h2 style='color: #cc6600;'>WARNING: Upload in Progress</h2>";
             html += "<div style='background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin: 10px 0;'>";
             html += "<p><strong>Folder:</strong> " + retryFolder + "</p>";
             html += "<p><strong>Attempt:</strong> " + String(retryCount + 1) + " of " + String(maxRetries) + "</p>";

@@ -139,16 +139,16 @@ private:
 // Convenience macros for logging
 
 /**
- * Basic logging macro - logs message to both serial and buffer
+ * Basic logging macro - logs message to both serial and buffer with INFO level
  * Usage: LOG("System started");
  */
-#define LOG(msg) Logger::getInstance().log(msg)
+#define LOG(msg) Logger::getInstance().log("[INFO] " msg)
 
 /**
- * Printf-style logging macro with format string
+ * Printf-style logging macro with format string and INFO level
  * Usage: LOGF("Temperature: %d°C", temp);
  */
-#define LOGF(fmt, ...) Logger::getInstance().logf(fmt, ##__VA_ARGS__)
+#define LOGF(fmt, ...) Logger::getInstance().logf("[INFO] " fmt, ##__VA_ARGS__)
 
 /**
  * Level-based logging macros for structured logging

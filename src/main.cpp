@@ -100,14 +100,14 @@ void setup() {
     LOG("Initializing uploader...");
     if (sdManager.takeControl()) {
         if (!uploader->begin(sdManager.getFS())) {
-            LOG("ERROR: Failed to initialize uploader");
+            LOG_ERROR("Failed to initialize uploader");
             sdManager.releaseControl();
             return;
         }
         sdManager.releaseControl();
         LOG("Uploader initialized successfully");
     } else {
-        LOG("ERROR: Failed to take SD card control for uploader initialization");
+        LOG_ERROR("Failed to take SD card control for uploader initialization");
         return;
     }
     
@@ -147,7 +147,7 @@ void setup() {
             LOG_DEBUG("Web server linked to uploader for responsive handling");
         }
     } else {
-        LOG("ERROR: Failed to start test web server");
+        LOG_ERROR("Failed to start test web server");
     }
 #endif
 
@@ -177,7 +177,7 @@ void loop() {
             if (sdManager.getFS().remove("/.upload_state.json")) {
                 LOG("Upload state file deleted successfully");
             } else {
-                LOG("WARNING: Failed to delete state file (may not exist)");
+                LOG_WARN("Failed to delete state file (may not exist)");
             }
             
             // Reinitialize uploader to load fresh state
@@ -196,14 +196,14 @@ void loop() {
                         LOG_DEBUG("TestWebServer manager references updated");
                     }
                 } else {
-                    LOG("ERROR: Failed to reinitialize uploader");
+                    LOG_ERROR("Failed to reinitialize uploader");
                 }
             }
             
             sdManager.releaseControl();
             LOG("State reset complete");
         } else {
-            LOG("ERROR: Cannot reset state - SD card in use");
+            LOG_ERROR("Cannot reset state - SD card in use");
             LOG("Will retry on next loop iteration");
         }
     }
@@ -286,9 +286,9 @@ void loop() {
     if (!wifiManager.isConnected()) {
         unsigned long currentTime = millis();
         if (currentTime - lastWifiReconnectAttempt >= 30000) {
-            LOG("WARNING: WiFi disconnected, attempting to reconnect...");
+            LOG_WARN("WiFi disconnected, attempting to reconnect...");
             if (!wifiManager.connectStation(config.getWifiSSID(), config.getWifiPassword())) {
-                LOG("ERROR: Failed to reconnect to WiFi");
+                LOG_ERROR("Failed to reconnect to WiFi");
                 LOG("Will retry in 30 seconds...");
                 lastWifiReconnectAttempt = currentTime;
                 return;

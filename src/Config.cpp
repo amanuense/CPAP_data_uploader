@@ -28,7 +28,7 @@ Config::~Config() {
 bool Config::initPreferences() {
     // Attempt to open Preferences namespace in read-write mode
     if (!preferences.begin(PREFS_NAMESPACE, false)) {
-        LOG("ERROR: Failed to initialize Preferences namespace");
+        LOG_ERROR("Failed to initialize Preferences namespace");
         LOG("Falling back to plain text credential storage");
         // Fall back to plain text mode on failure
         storePlainText = true;
@@ -96,7 +96,7 @@ bool Config::censorConfigFile(fs::FS &sd) {
     // Read existing config.json
     File configFile = sd.open("/config.json", FILE_READ);
     if (!configFile) {
-        LOG("ERROR: Cannot open config.json for reading during censoring");
+        LOG_ERROR("Cannot open config.json for reading during censoring");
         return false;
     }
     
@@ -119,7 +119,7 @@ bool Config::censorConfigFile(fs::FS &sd) {
     // Write updated JSON back to SD card
     configFile = sd.open("/config.json", FILE_WRITE);
     if (!configFile) {
-        LOG("ERROR: Cannot open config.json for writing during censoring");
+        LOG_ERROR("Cannot open config.json for writing during censoring");
         return false;
     }
     
@@ -128,7 +128,7 @@ bool Config::censorConfigFile(fs::FS &sd) {
     configFile.close();
     
     if (bytesWritten == 0) {
-        LOG("ERROR: Failed to write censored config to file");
+        LOG_ERROR("Failed to write censored config to file");
         return false;
     }
     
@@ -145,16 +145,16 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     
     // Step 1: Validate that credentials are not empty
     if (wifiPassword.isEmpty() && endpointPassword.isEmpty()) {
-        LOG("WARNING: Both credentials are empty, skipping migration");
+        LOG_WARN("Both credentials are empty, skipping migration");
         return false;
     }
     
     if (wifiPassword.isEmpty()) {
-        LOG("WARNING: WiFi password is empty, will not migrate WIFI_PASS");
+        LOG_WARN("WiFi password is empty, will not migrate WIFI_PASS");
     }
     
     if (endpointPassword.isEmpty()) {
-        LOG("WARNING: Endpoint password is empty, will not migrate ENDPOINT_PASS");
+        LOG_WARN("Endpoint password is empty, will not migrate ENDPOINT_PASS");
     }
     
     // Step 2: Store WIFI_PASS in Preferences
@@ -164,7 +164,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
         wifiStored = storeCredential(PREFS_KEY_WIFI_PASS, wifiPassword);
         
         if (!wifiStored) {
-            LOG("ERROR: Failed to store WiFi password in Preferences");
+            LOG_ERROR("Failed to store WiFi password in Preferences");
             LOG("Migration aborted - keeping plain text credentials");
             return false;
         }
@@ -179,7 +179,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
         endpointStored = storeCredential(PREFS_KEY_ENDPOINT_PASS, endpointPassword);
         
         if (!endpointStored) {
-            LOG("ERROR: Failed to store endpoint password in Preferences");
+            LOG_ERROR("Failed to store endpoint password in Preferences");
             LOG("Migration aborted - keeping plain text credentials");
             return false;
         }
@@ -194,7 +194,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     if (!wifiPassword.isEmpty()) {
         String verifyWifi = loadCredential(PREFS_KEY_WIFI_PASS, "");
         if (verifyWifi != wifiPassword) {
-            LOG("ERROR: WiFi password verification failed - stored value does not match");
+            LOG_ERROR("WiFi password verification failed - stored value does not match");
             verificationPassed = false;
         } else {
             LOG_DEBUG("WiFi password verification: PASSED");
@@ -204,7 +204,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     if (!endpointPassword.isEmpty()) {
         String verifyEndpoint = loadCredential(PREFS_KEY_ENDPOINT_PASS, "");
         if (verifyEndpoint != endpointPassword) {
-            LOG("ERROR: Endpoint password verification failed - stored value does not match");
+            LOG_ERROR("Endpoint password verification failed - stored value does not match");
             verificationPassed = false;
         } else {
             LOG_DEBUG("Endpoint password verification: PASSED");
@@ -212,7 +212,7 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     }
     
     if (!verificationPassed) {
-        LOG("ERROR: Credential verification failed");
+        LOG_ERROR("Credential verification failed");
         LOG("Migration aborted - keeping plain text credentials");
         return false;
     }
@@ -222,8 +222,8 @@ bool Config::migrateToSecureStorage(fs::FS &sd) {
     // Step 5: Censor config.json after successful Preferences storage
     LOG_DEBUG("Censoring config.json file...");
     if (!censorConfigFile(sd)) {
-        LOG("ERROR: Failed to censor config.json");
-        LOG("WARNING: Credentials are stored in Preferences but config.json still contains plain text");
+        LOG_ERROR("Failed to censor config.json");
+        LOG_WARN("Credentials are stored in Preferences but config.json still contains plain text");
         LOG("Manual intervention may be required");
         return false;
     }
@@ -246,7 +246,7 @@ bool Config::loadFromSD(fs::FS &sd) {
     // Step 1: Read and parse config.json
     File configFile = sd.open("/config.json");
     if (!configFile) {
-        LOG("ERROR: Failed to open config file");
+        LOG_ERROR("Failed to open config file");
         return false;
     }
 
@@ -299,14 +299,14 @@ bool Config::loadFromSD(fs::FS &sd) {
         credentialsInFlash = false;
         
         LOG_DEBUG("Credentials loaded from config.json");
-        LOG("WARNING: Credentials are stored in plain text");
+        LOG_WARN("Credentials are stored in plain text");
     } else {
         // Secure mode: Check if credentials are censored and handle accordingly
         LOG_DEBUG("Checking credential storage status...");
         
         // Initialize Preferences for secure storage
         if (!initPreferences()) {
-            LOG("ERROR: Failed to initialize Preferences");
+            LOG_ERROR("Failed to initialize Preferences");
             LOG("Falling back to plain text mode for this session");
             wifiPassword = doc["WIFI_PASS"] | "";
             endpointPassword = doc["ENDPOINT_PASS"] | "";
@@ -347,14 +347,14 @@ bool Config::loadFromSD(fs::FS &sd) {
                     LOG("Migration successful - credentials now in flash memory");
                     credentialsInFlash = true;
                 } else {
-                    LOG("ERROR: Migration failed - continuing with plain text credentials");
-                    LOG("WARNING: Credentials remain in plain text in config.json");
+                    LOG_ERROR("Migration failed - continuing with plain text credentials");
+                    LOG_WARN("Credentials remain in plain text in config.json");
                     credentialsInFlash = false;
                 }
                 
             } else {
                 // Mixed state - some censored, some not (unexpected)
-                LOG("WARNING: Mixed credential state detected");
+                LOG_WARN("Mixed credential state detected");
                 LOGF("WiFi password censored: %s", wifiCensored ? "YES" : "NO");
                 LOGF("Endpoint password censored: %s", endpointCensored ? "YES" : "NO");
                 LOG("Loading available credentials from both sources");
@@ -373,7 +373,7 @@ bool Config::loadFromSD(fs::FS &sd) {
                 }
                 
                 credentialsInFlash = (wifiCensored || endpointCensored);
-                LOG("WARNING: Consider re-migrating to ensure consistent credential storage");
+                LOG_WARN("Consider re-migrating to ensure consistent credential storage");
             }
         }
     }
@@ -388,7 +388,7 @@ bool Config::loadFromSD(fs::FS &sd) {
         LOG_DEBUGF("Credentials in flash: %s", credentialsInFlash ? "YES" : "NO");
         LOG("========================================");
     } else {
-        LOG("ERROR: Configuration validation failed");
+        LOG_ERROR("Configuration validation failed");
         LOG("Missing required fields: WIFI_SSID or ENDPOINT");
     }
     
