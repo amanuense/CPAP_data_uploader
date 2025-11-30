@@ -8,6 +8,7 @@
 #include "TimeBudgetManager.h"
 #include "ScheduleManager.h"
 #include "WiFiManager.h"
+#include "CPAPMonitor.h"
 
 // Global trigger flags for upload and state reset
 extern volatile bool g_triggerUploadFlag;
@@ -22,6 +23,7 @@ private:
     TimeBudgetManager* budgetManager;
     ScheduleManager* scheduleManager;
     WiFiManager* wifiManager;
+    CPAPMonitor* cpapMonitor;
     
     // Request handlers
     void handleRoot();
@@ -42,7 +44,8 @@ private:
 
 public:
     TestWebServer(Config* cfg, UploadStateManager* state, 
-                  TimeBudgetManager* budget, ScheduleManager* schedule, WiFiManager* wifi = nullptr);
+                  TimeBudgetManager* budget, ScheduleManager* schedule, 
+                  WiFiManager* wifi = nullptr, CPAPMonitor* monitor = nullptr);
     ~TestWebServer();
     
     bool begin();

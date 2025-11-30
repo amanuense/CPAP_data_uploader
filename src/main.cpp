@@ -8,6 +8,7 @@
 
 #ifdef ENABLE_TEST_WEBSERVER
 #include "TestWebServer.h"
+#include "CPAPMonitor.h"
 #endif
 
 // ============================================================================
@@ -20,6 +21,7 @@ FileUploader* uploader = nullptr;
 
 #ifdef ENABLE_TEST_WEBSERVER
 TestWebServer* testWebServer = nullptr;
+CPAPMonitor* cpapMonitor = nullptr;
 #endif
 
 // ============================================================================
@@ -141,6 +143,12 @@ void setup() {
     }
 
 #ifdef ENABLE_TEST_WEBSERVER
+    // Initialize CPAP monitor
+    LOG("Initializing CPAP SD card usage monitor...");
+    cpapMonitor = new CPAPMonitor();
+    cpapMonitor->begin();
+    LOG("CPAP monitor started - tracking SD card usage every 10 minutes");
+    
     // Initialize test web server for on-demand testing
     LOG("Initializing test web server...");
     
@@ -149,7 +157,8 @@ void setup() {
                                       uploader->getStateManager(),
                                       uploader->getBudgetManager(),
                                       uploader->getScheduleManager(),
-                                      &wifiManager);
+                                      &wifiManager,
+                                      cpapMonitor);
     
     if (testWebServer->begin()) {
         LOG("Test web server started successfully");
@@ -173,6 +182,11 @@ void setup() {
 // ============================================================================
 void loop() {
 #ifdef ENABLE_TEST_WEBSERVER
+    // Update CPAP monitor
+    if (cpapMonitor) {
+        cpapMonitor->update();
+    }
+    
     // Handle web server requests
     if (testWebServer) {
         testWebServer->handleClient();

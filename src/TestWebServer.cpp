@@ -13,13 +13,15 @@ extern bool budgetExhaustedRetry;
 
 // Constructor
 TestWebServer::TestWebServer(Config* cfg, UploadStateManager* state,
-                             TimeBudgetManager* budget, ScheduleManager* schedule, WiFiManager* wifi)
+                             TimeBudgetManager* budget, ScheduleManager* schedule, 
+                             WiFiManager* wifi, CPAPMonitor* monitor)
     : server(nullptr),
       config(cfg),
       stateManager(state),
       budgetManager(budget),
       scheduleManager(schedule),
-      wifiManager(wifi) {
+      wifiManager(wifi),
+      cpapMonitor(monitor) {
 }
 
 // Destructor
@@ -225,6 +227,18 @@ void TestWebServer::handleRoot() {
         }
     }
     
+    // CPAP SD Card Usage Monitor
+    if (cpapMonitor) {
+        html += "<h2>CPAP SD Card Usage (24 Hours)</h2>";
+        int usagePercent = cpapMonitor->getUsagePercentage();
+        html += "<div class='info'><span class='label'>Usage Percentage:</span><span class='value'>";
+        html += String(usagePercent) + "%</span></div>";
+        html += "<div class='info'><span class='label'>Monitoring Interval:</span><span class='value'>Every 10 minutes</span></div>";
+        
+        // Add the usage table
+        html += cpapMonitor->getUsageTableHTML();
+    }
+    
     // Configuration
     html += "<h2>Configuration</h2>";
     if (config) {
@@ -372,6 +386,16 @@ void TestWebServer::handleStatus() {
         } else {
             json += ",\"retry_warning\":false";
         }
+    }
+    
+    // Add CPAP monitor data
+    if (cpapMonitor) {
+        json += ",\"cpap_monitor\":{";
+        json += "\"usage_percentage\":" + String(cpapMonitor->getUsagePercentage());
+        json += ",\"interval_minutes\":10";
+        json += ",\"data_points\":144";
+        json += ",\"usage_data\":" + cpapMonitor->getUsageDataJSON();
+        json += "}";
     }
     
     json += "}";
