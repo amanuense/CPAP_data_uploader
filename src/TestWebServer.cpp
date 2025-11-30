@@ -46,6 +46,13 @@ bool TestWebServer::begin() {
     server->on("/reset-state", [this]() { this->handleResetState(); });
     server->on("/config", [this]() { this->handleConfig(); });
     server->on("/logs", [this]() { this->handleLogs(); });
+    
+    // Handle common browser requests silently
+    server->on("/favicon.ico", [this]() { 
+        // Return empty 204 No Content to avoid error logs
+        server->send(204); 
+    });
+    
     server->onNotFound([this]() { this->handleNotFound(); });
     
     // Start the server
@@ -468,7 +475,19 @@ void TestWebServer::handleConfig() {
 
 // Handle 404 errors
 void TestWebServer::handleNotFound() {
-    String message = "{\"status\":\"error\",\"message\":\"Endpoint not found\"}";
+    String uri = server->uri();
+    
+    // Silently handle common browser requests that we don't care about
+    if (uri == "/favicon.ico" || uri == "/apple-touch-icon.png" || 
+        uri == "/apple-touch-icon-precomposed.png" || uri == "/robots.txt") {
+        server->send(404, "text/plain", "Not found");
+        return;
+    }
+    
+    // Log unexpected 404s
+    LOG_DEBUGF("[TestWebServer] 404 Not Found: %s", uri.c_str());
+    
+    String message = "{\"status\":\"error\",\"message\":\"Endpoint not found\",\"path\":\"" + uri + "\"}";
     server->send(404, "application/json", message);
 }
 
