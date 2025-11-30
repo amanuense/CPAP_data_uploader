@@ -1,51 +1,41 @@
 #!/bin/bash
-# Quick setup script for new project checkout
-# Sets up Python venv, PlatformIO, and libsmb2 component
+# Setup script for CPAP Data Uploader development environment
 
-set -e
+set -e  # Exit on error
 
-# Colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+echo "Setting up CPAP Data Uploader development environment..."
 
-echo -e "${GREEN}=== Project Setup ===${NC}"
-echo ""
+# Check if Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "Error: python3 is required but not installed."
+    exit 1
+fi
 
-# 1. Create Python virtual environment
+# Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
-    echo -e "${YELLOW}Creating Python virtual environment...${NC}"
+    echo "Creating virtual environment..."
     python3 -m venv venv
-    echo -e "${GREEN}✓ Virtual environment created${NC}"
 else
-    echo -e "${GREEN}✓ Virtual environment already exists${NC}"
+    echo "Virtual environment already exists."
 fi
 
-# 2. Install PlatformIO
-echo -e "${YELLOW}Installing PlatformIO...${NC}"
+# Activate virtual environment
+echo "Activating virtual environment..."
 source venv/bin/activate
-pip install --upgrade pip --quiet
-pip install platformio --quiet
-echo -e "${GREEN}✓ PlatformIO installed${NC}"
 
-# 3. Setup libsmb2 (if SMB upload is enabled)
-if grep -q "ENABLE_SMB_UPLOAD" platformio.ini; then
-    echo -e "${YELLOW}Setting up libsmb2 component...${NC}"
-    ./scripts/setup_libsmb2.sh
-else
-    echo -e "${YELLOW}ℹ SMB upload not enabled, skipping libsmb2${NC}"
-fi
+# Upgrade pip
+echo "Upgrading pip..."
+pip install --upgrade pip
 
-# 4. Install PlatformIO dependencies
-echo -e "${YELLOW}Installing PlatformIO dependencies...${NC}"
-pio pkg install
-echo -e "${GREEN}✓ Dependencies installed${NC}"
+# Install requirements
+echo "Installing PlatformIO..."
+pip install -r requirements.txt
 
 echo ""
-echo -e "${GREEN}=== Setup Complete! ===${NC}"
+echo "✓ Setup complete!"
 echo ""
-echo "Quick commands:"
-echo "  Build & Upload:  ./build_upload.sh"
-echo "  Monitor:         ./monitor.sh"
-echo "  Run Tests:       source venv/bin/activate && pio test -e native"
+echo "To activate the environment in the future, run:"
+echo "  source venv/bin/activate"
 echo ""
+echo "To build and upload firmware, run:"
+echo "  ./build_upload.sh"
