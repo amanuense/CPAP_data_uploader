@@ -208,7 +208,7 @@ bool SMBUploader::createDirectory(const String& path) {
         }
     } else {
         // Stat failed - directory might not exist or we might not have permissions
-        LOG_DEBUGF("[SMB] Directory stat failed for %s (will attempt to create)", cleanPath.c_str());
+        LOGF("[SMB] Directory does not exist: %s (will create)", cleanPath.c_str());
     }
     
     // Directory doesn't exist, need to create it
@@ -223,7 +223,7 @@ bool SMBUploader::createDirectory(const String& path) {
     }
     
     // Create this directory
-    LOG_DEBUGF("[SMB] Creating directory: %s", cleanPath.c_str());
+    LOGF("[SMB] Creating directory: %s", cleanPath.c_str());
     
     int mkdir_result = smb2_mkdir(smb2, cleanPath.c_str());
     if (mkdir_result < 0) {
@@ -252,7 +252,7 @@ bool SMBUploader::createDirectory(const String& path) {
         return false;
     }
     
-    LOG_DEBUGF("[SMB] Directory created successfully: %s", cleanPath.c_str());
+    LOGF("[SMB] Directory created successfully: %s", cleanPath.c_str());
     return true;
 }
 

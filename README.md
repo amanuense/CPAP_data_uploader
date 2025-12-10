@@ -15,6 +15,10 @@ Automatically upload CPAP therapy data from your SD card to network storage. Tes
 
 **Want to use this?** Download the latest release package with precompiled firmware and easy upload tools.
 
+### Known issues
+- Sometimes the CPAP machine will complain about SD card not working. This is likely caused by CPAP machine attempting to access the SD card at the same time as our firmware. When this happens just reinsert the SD card.
+- The upload doesn't create the DATALOG folder. We are tracking this issue. To prevent this issue, copy the data of the SD card into the destination folder or manually create the DATALOG folder.
+
 👉 [Download Latest Release](../../releases) (includes upload tools for Windows, Mac, and Linux)
 
 See the [User Guide](release/README.md) for complete setup and usage instructions.
