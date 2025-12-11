@@ -100,30 +100,6 @@ int8_t CPAPMonitor::getUsageStatus(int minutesAgo) const {
     return usageData[index];
 }
 
-int CPAPMonitor::getUsagePercentage() const {
-    if (!initialized) {
-        return 0;
-    }
-    
-    int usageCount = 0;
-    int validCount = 0;
-    
-    for (int i = 0; i < INTERVALS_PER_DAY; i++) {
-        if (usageData[i] >= 0) {  // Only count checked intervals
-            validCount++;
-            if (usageData[i] == 1) {
-                usageCount++;
-            }
-        }
-    }
-    
-    if (validCount == 0) {
-        return 0;
-    }
-    
-    return (usageCount * 100) / validCount;
-}
-
 String CPAPMonitor::getUsageDataJSON() const {
     String json = "[";
     

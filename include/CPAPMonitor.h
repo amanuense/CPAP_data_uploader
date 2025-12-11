@@ -36,7 +36,6 @@ public:
     
     // Get usage data for web interface
     int8_t getUsageStatus(int minutesAgo) const;  // Returns -1 (not checked), 0 (available), 1 (using)
-    int getUsagePercentage() const;  // Percentage of time CPAP was using SD card
     String getUsageDataJSON() const;  // JSON array of last 24 hours
     String getUsageTableHTML() const;  // HTML table for web interface
 };
@@ -50,7 +49,6 @@ public:
     void begin() {}
     void update() {}
     int8_t getUsageStatus(int minutesAgo) const { return -1; }
-    int getUsagePercentage() const { return 0; }
     String getUsageDataJSON() const { return "[]"; }
     String getUsageTableHTML() const { return "<p>CPAP monitoring disabled (CS_SENSE hardware issue)</p>"; }
 };

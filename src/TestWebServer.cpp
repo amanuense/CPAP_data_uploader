@@ -240,18 +240,18 @@ void TestWebServer::handleRoot() {
             html += "</div>";
         }
     }
-    
+
+#ifdef ENABLE_CPAP_MONITOR
     // CPAP SD Card Usage Monitor
     if (cpapMonitor) {
         html += "<h2>CPAP SD Card Usage (24 Hours)</h2>";
-        int usagePercent = cpapMonitor->getUsagePercentage();
-        html += "<div class='info'><span class='label'>Usage Percentage:</span><span class='value'>";
-        html += String(usagePercent) + "%</span></div>";
         html += "<div class='info'><span class='label'>Monitoring Interval:</span><span class='value'>Every 10 minutes</span></div>";
         
         // Add the usage table
         html += cpapMonitor->getUsageTableHTML();
     }
+#endif //ENABLE_CPAP_MONITOR
+
     
     // Configuration
     html += "<h2>Configuration</h2>";
@@ -402,15 +402,15 @@ void TestWebServer::handleStatus() {
         }
     }
     
-    // Add CPAP monitor data
+    // Add CPAP monitor data (without usage percentage)
     if (cpapMonitor) {
         json += ",\"cpap_monitor\":{";
-        json += "\"usage_percentage\":" + String(cpapMonitor->getUsagePercentage());
-        json += ",\"interval_minutes\":10";
+        json += "\"interval_minutes\":10";
         json += ",\"data_points\":144";
         json += ",\"usage_data\":" + cpapMonitor->getUsageDataJSON();
         json += "}";
     }
+
     
     json += "}";
     
