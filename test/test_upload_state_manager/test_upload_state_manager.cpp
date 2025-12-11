@@ -41,7 +41,7 @@ void test_load_state_file_success() {
         "version": 1,
         "last_upload_timestamp": 1699876800,
         "file_checksums": {
-            "/identification.json": "abc123",
+            "/Identification.json": "abc123",
             "/SRT.edf": "def456"
         },
         "completed_datalog_folders": ["20241101", "20241102"],
@@ -127,7 +127,7 @@ void test_load_state_file_large_with_many_folders() {
         "version": 1,
         "last_upload_timestamp": 1699876800,
         "file_checksums": {
-            "/identification.json": "abc123",
+            "/Identification.json": "abc123",
             "/SRT.edf": "def456"
         },
         "completed_datalog_folders": [)";
@@ -167,7 +167,7 @@ void test_save_state_file_success() {
     
     // Set some state
     manager.setLastUploadTimestamp(1699876800);
-    manager.markFileUploaded("/identification.json", "abc123");
+    manager.markFileUploaded("/Identification.json", "abc123");
     manager.markFileUploaded("/SRT.edf", "def456");
     manager.markFolderCompleted("20241101");
     manager.markFolderCompleted("20241102");
@@ -237,7 +237,7 @@ void test_save_state_file_large_with_many_folders() {
     }
     
     // Add some file checksums
-    manager.markFileUploaded("/identification.json", "abc123");
+    manager.markFileUploaded("/Identification.json", "abc123");
     manager.markFileUploaded("/SRT.edf", "def456");
     manager.setLastUploadTimestamp(1699876800);
     
@@ -700,7 +700,7 @@ void test_backward_compatibility_missing_pending_field() {
         "version": 1,
         "last_upload_timestamp": 1699876800,
         "file_checksums": {
-            "/identification.json": "abc123"
+            "/Identification.json": "abc123"
         },
         "completed_datalog_folders": ["20241101", "20241102"],
         "current_retry_folder": "",

@@ -198,7 +198,7 @@ Insert the SD card into your CPAP machine's SD slot and power it on. The device 
 2. Takes control of SD card (CPAP must wait briefly)
 3. Uploads new/changed files in priority order:
    - DATALOG folders (newest first)
-   - Root files (identification.json, STR.edf, journal.jnl)
+   - Root files (Identification.json, STR.edf, journal.jnl)
    - SETTINGS files
 4. Automatically creates directories on remote share if they don't exist
 5. Releases SD card after session or time budget exhausted
@@ -410,8 +410,8 @@ http://<device-ip>/logs
 /
 ├── config.json              # Your configuration (you create this)
 ├── .upload_state.json       # Upload tracking (auto-created)
-├── identification.json      # CPAP identification
-├── identification.crc       # Checksum
+├── Identification.json      # CPAP identification
+├── Identification.crc       # Checksum
 ├── STR.edf                  # Summary data
 ├── journal.jnl              # Journal file
 ├── DATALOG/                 # Therapy data folders
@@ -428,8 +428,8 @@ http://<device-ip>/logs
 Files are uploaded maintaining the same structure:
 ```
 //server/share/
-├── identification.json
-├── identification.crc
+├── Identification.json
+├── Identification.crc
 ├── STR.edf
 ├── journal.jnl
 ├── DATALOG/
