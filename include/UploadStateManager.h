@@ -42,6 +42,7 @@ public:
     // Pending folder tracking for empty folders
     bool isPendingFolder(const String& folderName);
     void markFolderPending(const String& folderName, unsigned long timestamp);
+    void removeFolderFromPending(const String& folderName);
     bool shouldPromotePendingToCompleted(const String& folderName, unsigned long currentTime);
     void promotePendingToCompleted(const String& folderName);
     int getPendingFoldersCount() const;

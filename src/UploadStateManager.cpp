@@ -186,6 +186,14 @@ void UploadStateManager::markFolderPending(const String& folderName, unsigned lo
          folderName.c_str(), timestamp);
 }
 
+void UploadStateManager::removeFolderFromPending(const String& folderName) {
+    auto it = pendingDatalogFolders.find(folderName);
+    if (it != pendingDatalogFolders.end()) {
+        pendingDatalogFolders.erase(it);
+        LOG_DEBUGF("[UploadStateManager] Removed folder from pending state: %s", folderName.c_str());
+    }
+}
+
 bool UploadStateManager::shouldPromotePendingToCompleted(const String& folderName, unsigned long currentTime) {
     auto it = pendingDatalogFolders.find(folderName);
     if (it == pendingDatalogFolders.end()) {

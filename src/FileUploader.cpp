@@ -377,15 +377,26 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
             if (stateManager->isFolderCompleted(folderName)) {
                 LOG_DEBUGF("[FileUploader] Skipping completed folder: %s", folderName.c_str());
             } else if (stateManager->isPendingFolder(folderName)) {
-                // Check if pending folder has timed out
-                unsigned long currentTime = time(NULL);
-                if (currentTime >= 1000000000 && stateManager->shouldPromotePendingToCompleted(folderName, currentTime)) {
-                    // Timed out pending folder - include in scan for promotion
+                // Check if pending folder now has files (was empty but now has content)
+                String folderPath = "/DATALOG/" + folderName;
+                std::vector<String> folderFiles = scanFolderFiles(sd, folderPath);
+                
+                if (!folderFiles.empty()) {
+                    // Folder now has files - remove from pending state and process normally
+                    LOG_DEBUGF("[FileUploader] Pending folder now has files, removing from pending: %s", folderName.c_str());
+                    // Note: We'll remove it from pending state when we mark it completed or during upload
                     folders.push_back(folderName);
-                    LOG_DEBUGF("[FileUploader] Found timed-out pending folder: %s", folderName.c_str());
                 } else {
-                    // Still pending, skip for now
-                    LOG_DEBUGF("[FileUploader] Skipping pending folder (within 7-day window): %s", folderName.c_str());
+                    // Still empty - check if pending folder has timed out
+                    unsigned long currentTime = time(NULL);
+                    if (currentTime >= 1000000000 && stateManager->shouldPromotePendingToCompleted(folderName, currentTime)) {
+                        // Timed out pending folder - include in scan for promotion
+                        folders.push_back(folderName);
+                        LOG_DEBUGF("[FileUploader] Found timed-out pending folder: %s", folderName.c_str());
+                    } else {
+                        // Still pending, skip for now
+                        LOG_DEBUGF("[FileUploader] Skipping pending folder (within 7-day window): %s", folderName.c_str());
+                    }
                 }
             } else {
                 // Regular incomplete folder
@@ -607,6 +618,12 @@ bool FileUploader::uploadDatalogFolder(SDCardManager* sdManager, const String& f
     
     // Scan for files in the folder
     std::vector<String> files = scanFolderFiles(sd, folderPath);
+    
+    // If this was a pending folder but now has files, remove it from pending state
+    if (stateManager->isPendingFolder(folderName) && !files.empty()) {
+        LOG_DEBUGF("[FileUploader] Removing folder from pending state (now has files): %s", folderName.c_str());
+        stateManager->removeFolderFromPending(folderName);
+    }
     
     if (files.empty()) {
         // Need to distinguish between "truly empty" and "scan failed"

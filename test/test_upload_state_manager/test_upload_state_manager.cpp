@@ -663,6 +663,34 @@ void test_pending_folder_with_files_uploads_normally() {
     TEST_ASSERT_EQUAL(0, manager.getPendingFoldersCount());
 }
 
+// **Feature: empty-folder-handling, Property 7: Remove folder from pending state**
+void test_remove_folder_from_pending() {
+    UploadStateManager manager;
+    manager.begin(testFS);
+    
+    String folderName = "20241101";
+    unsigned long timestamp = 1699876800;
+    
+    // Mark folder as pending
+    manager.markFolderPending(folderName, timestamp);
+    TEST_ASSERT_TRUE(manager.isPendingFolder(folderName));
+    TEST_ASSERT_EQUAL(1, manager.getPendingFoldersCount());
+    
+    // Remove folder from pending state (simulates folder getting files)
+    manager.removeFolderFromPending(folderName);
+    
+    // Verify folder is no longer pending
+    TEST_ASSERT_FALSE(manager.isPendingFolder(folderName));
+    TEST_ASSERT_EQUAL(0, manager.getPendingFoldersCount());
+    
+    // Verify folder is not completed either (it should be processed normally)
+    TEST_ASSERT_FALSE(manager.isFolderCompleted(folderName));
+    
+    // Test removing non-existent pending folder (should not crash)
+    manager.removeFolderFromPending("nonexistent");
+    TEST_ASSERT_EQUAL(0, manager.getPendingFoldersCount());
+}
+
 // **Feature: empty-folder-handling, Property 6: Pending state persistence round-trip**
 void test_pending_state_persistence_round_trip() {
     UploadStateManager manager1;
@@ -794,6 +822,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_timeout_calculation_correctness);
     RUN_TEST(test_pending_to_completed_promotion);
     RUN_TEST(test_pending_folder_with_files_uploads_normally);
+    RUN_TEST(test_remove_folder_from_pending);
     RUN_TEST(test_pending_state_persistence_round_trip);
     RUN_TEST(test_backward_compatibility_missing_pending_field);
     RUN_TEST(test_incomplete_folders_count_with_pending);
