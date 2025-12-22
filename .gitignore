@@ -17,6 +17,7 @@ components/
 dependencies.lock
 sdkconfig*
 compile_commands.json
+include/version.h
 
 # Temporary files
 *.tmp
