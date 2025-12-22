@@ -770,6 +770,36 @@ void test_incomplete_folders_count_with_pending() {
     TEST_ASSERT_EQUAL(2, manager.getPendingFoldersCount());
 }
 
+// **Feature: empty-folder-handling, Property 8: Immediate pending removal when folder gets files**
+void test_pending_folder_immediate_removal_on_files() {
+    UploadStateManager manager;
+    manager.begin(testFS);
+    
+    String folderName = "20241105";
+    unsigned long timestamp = 1699876800;
+    
+    // Mark folder as pending (simulating empty folder detection)
+    manager.markFolderPending(folderName, timestamp);
+    TEST_ASSERT_TRUE(manager.isPendingFolder(folderName));
+    TEST_ASSERT_EQUAL(1, manager.getPendingFoldersCount());
+    
+    // Simulate folder getting files and being immediately removed from pending
+    // This simulates the fix in scanDatalogFolders() where we call removeFolderFromPending()
+    // immediately when files are detected, rather than waiting for upload
+    manager.removeFolderFromPending(folderName);
+    
+    // Verify folder is immediately removed from pending state
+    TEST_ASSERT_FALSE(manager.isPendingFolder(folderName));
+    TEST_ASSERT_EQUAL(0, manager.getPendingFoldersCount());
+    
+    // Verify folder is not automatically completed (it should go through normal upload process)
+    TEST_ASSERT_FALSE(manager.isFolderCompleted(folderName));
+    
+    // Test that multiple calls to removeFolderFromPending don't cause issues
+    manager.removeFolderFromPending(folderName);  // Should be safe to call again
+    TEST_ASSERT_EQUAL(0, manager.getPendingFoldersCount());
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
     
@@ -823,6 +853,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_pending_to_completed_promotion);
     RUN_TEST(test_pending_folder_with_files_uploads_normally);
     RUN_TEST(test_remove_folder_from_pending);
+    RUN_TEST(test_pending_folder_immediate_removal_on_files);
     RUN_TEST(test_pending_state_persistence_round_trip);
     RUN_TEST(test_backward_compatibility_missing_pending_field);
     RUN_TEST(test_incomplete_folders_count_with_pending);

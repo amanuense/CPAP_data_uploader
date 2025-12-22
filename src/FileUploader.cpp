@@ -382,9 +382,9 @@ std::vector<String> FileUploader::scanDatalogFolders(fs::FS &sd) {
                 std::vector<String> folderFiles = scanFolderFiles(sd, folderPath);
                 
                 if (!folderFiles.empty()) {
-                    // Folder now has files - remove from pending state and process normally
+                    // Folder now has files - remove from pending state immediately and process normally
                     LOG_DEBUGF("[FileUploader] Pending folder now has files, removing from pending: %s", folderName.c_str());
-                    // Note: We'll remove it from pending state when we mark it completed or during upload
+                    stateManager->removeFolderFromPending(folderName);
                     folders.push_back(folderName);
                 } else {
                     // Still empty - check if pending folder has timed out
