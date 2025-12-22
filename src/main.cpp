@@ -98,7 +98,8 @@ void setup() {
     // Read config file from SD card
     LOG("Loading configuration...");
     if (!config.loadFromSD(sdManager.getFS())) {
-        LOG("Failed to load configuration");
+        LOG_ERROR("Failed to load configuration - cannot continue");
+        LOG_ERROR("Please check config.json file on SD card");
         sdManager.releaseControl();
         return;
     }
@@ -352,6 +353,15 @@ void loop() {
         unsigned long currentTime = millis();
         if (currentTime - lastWifiReconnectAttempt >= 30000) {
             LOG_WARN("WiFi disconnected, attempting to reconnect...");
+            
+            // Validate configuration before attempting reconnection
+            if (!config.valid() || config.getWifiSSID().isEmpty()) {
+                LOG_ERROR("Cannot reconnect to WiFi: Invalid configuration");
+                LOG_ERROR("SSID is empty or configuration is invalid");
+                lastWifiReconnectAttempt = currentTime;
+                return;
+            }
+            
             if (!wifiManager.connectStation(config.getWifiSSID(), config.getWifiPassword())) {
                 LOG_ERROR("Failed to reconnect to WiFi");
                 LOG("Will retry in 30 seconds...");

@@ -5,7 +5,24 @@
 WiFiManager::WiFiManager() : connected(false) {}
 
 bool WiFiManager::connectStation(const String& ssid, const String& password) {
+    // Validate SSID before attempting connection
+    if (ssid.isEmpty()) {
+        LOG_ERROR("Cannot connect to WiFi: SSID is empty");
+        return false;
+    }
+    
+    if (ssid.length() > 32) {
+        LOG_ERROR("Cannot connect to WiFi: SSID exceeds 32 character limit");
+        LOGF("SSID length: %d characters", ssid.length());
+        return false;
+    }
+    
+    if (password.isEmpty()) {
+        LOG_WARN("WiFi password is empty - attempting open network connection");
+    }
+    
     LOGF("Connecting to WiFi: %s", ssid.c_str());
+    LOGF("SSID length: %d characters", ssid.length());
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());

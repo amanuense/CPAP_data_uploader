@@ -101,7 +101,7 @@ bool Config::censorConfigFile(fs::FS &sd) {
     }
     
     // Parse JSON document
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<2048> doc;
     DeserializationError error = deserializeJson(doc, configFile);
     configFile.close();
     
@@ -255,7 +255,7 @@ bool Config::loadFromSD(fs::FS &sd) {
         return false;
     }
 
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<2048> doc;
     DeserializationError error = deserializeJson(doc, configFile);
     configFile.close();
 
@@ -281,6 +281,15 @@ bool Config::loadFromSD(fs::FS &sd) {
     
     // Step 3: Load non-credential configuration fields
     wifiSSID = doc["WIFI_SSID"] | "";
+    
+    // Validate SSID length (WiFi standard limit is 32 characters)
+    if (wifiSSID.length() > 32) {
+        LOG_ERROR("SSID exceeds maximum length of 32 characters");
+        LOGF("SSID length: %d characters", wifiSSID.length());
+        LOG("Truncating SSID to 32 characters");
+        wifiSSID = wifiSSID.substring(0, 32);
+    }
+    
     schedule = doc["SCHEDULE"] | "";
     endpoint = doc["ENDPOINT"] | "";
     endpointType = doc["ENDPOINT_TYPE"] | "";
