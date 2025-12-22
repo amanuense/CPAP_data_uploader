@@ -47,6 +47,7 @@ private:
     // OTA handlers
     void handleOTAPage();
     void handleOTAUpload();
+    void handleOTAUploadComplete();
     void handleOTAURL();
     void handleOTAStatus();
     

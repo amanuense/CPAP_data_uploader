@@ -73,21 +73,25 @@ bool OTAManager::startUpdate(size_t firmwareSize) {
         return false;
     }
     
-    if (firmwareSize == 0 || firmwareSize > 0x200000) {  // Max 2MB firmware
-        LOG_ERROR("[OTA] Invalid firmware size");
+    // Allow size 0 for chunked uploads - we'll determine the actual size later
+    if (firmwareSize > 0x180000) {  // Max 1.5MB firmware (OTA partition size)
+        LOG_ERROR("[OTA] Firmware size too large");
         return false;
     }
     
     LOG_DEBUGF("[OTA] Starting update, firmware size: %u bytes", firmwareSize);
     
-    if (!Update.begin(firmwareSize)) {
+    // For chunked uploads (size 0), use the OTA partition size as default
+    size_t updateSize = (firmwareSize == 0) ? 0x180000 : firmwareSize;  // 1.5MB default
+    
+    if (!Update.begin(updateSize)) {
         LOG_ERROR("[OTA] Failed to begin update");
         LOG_DEBUGF("[OTA] Update error: %s", Update.errorString());
         return false;
     }
     
     updateInProgress = true;
-    totalSize = firmwareSize;
+    totalSize = firmwareSize;  // Keep original size (may be 0)
     writtenSize = 0;
     
     LOG("[OTA] Update started successfully");
@@ -134,11 +138,18 @@ bool OTAManager::finishUpdate() {
         return false;
     }
     
-    if (writtenSize != totalSize) {
+    // For chunked uploads, we might not know the total size upfront
+    if (totalSize > 0 && writtenSize != totalSize) {
         LOG_ERROR("[OTA] Incomplete update");
         LOG_DEBUGF("[OTA] Expected %u bytes, got %u bytes", totalSize, writtenSize);
         abortUpdate();
         return false;
+    }
+    
+    // Update totalSize if it was unknown (chunked upload)
+    if (totalSize == 0) {
+        totalSize = writtenSize;
+        LOG_DEBUGF("[OTA] Final firmware size: %u bytes", totalSize);
     }
     
     if (!Update.end(true)) {
@@ -163,6 +174,17 @@ void OTAManager::abortUpdate() {
     }
 }
 
+void OTAManager::forceReset() {
+    LOG("[OTA] Force resetting OTA state");
+    if (updateInProgress) {
+        Update.abort();
+    }
+    updateInProgress = false;
+    totalSize = 0;
+    writtenSize = 0;
+    LOG("[OTA] OTA state reset complete");
+}
+
 bool OTAManager::updateFromURL(const String& url) {
     if (updateInProgress) {
         LOG_ERROR("[OTA] Update already in progress");
@@ -175,10 +197,63 @@ bool OTAManager::updateFromURL(const String& url) {
     http.begin(url);
     http.setTimeout(30000);  // 30 second timeout
     
+    // Add user agent and connection details for better compatibility
+    http.addHeader("User-Agent", "ESP32-OTA-Updater/1.0");
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    
+    LOG_DEBUG("[OTA] Sending HTTP GET request...");
+    
     int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK) {
         LOG_ERROR("[OTA] HTTP request failed");
         LOG_DEBUGF("[OTA] HTTP code: %d", httpCode);
+        
+        // Provide more detailed error information
+        String errorMsg = "Unknown error";
+        switch (httpCode) {
+            case HTTPC_ERROR_CONNECTION_REFUSED:
+                errorMsg = "Connection refused";
+                break;
+            case HTTPC_ERROR_SEND_HEADER_FAILED:
+                errorMsg = "Send header failed";
+                break;
+            case HTTPC_ERROR_SEND_PAYLOAD_FAILED:
+                errorMsg = "Send payload failed";
+                break;
+            case HTTPC_ERROR_NOT_CONNECTED:
+                errorMsg = "Not connected";
+                break;
+            case HTTPC_ERROR_CONNECTION_LOST:
+                errorMsg = "Connection lost";
+                break;
+            case HTTPC_ERROR_NO_STREAM:
+                errorMsg = "No stream";
+                break;
+            case HTTPC_ERROR_NO_HTTP_SERVER:
+                errorMsg = "No HTTP server";
+                break;
+            case HTTPC_ERROR_TOO_LESS_RAM:
+                errorMsg = "Too less RAM";
+                break;
+            case HTTPC_ERROR_ENCODING:
+                errorMsg = "Encoding error";
+                break;
+            case HTTPC_ERROR_STREAM_WRITE:
+                errorMsg = "Stream write error";
+                break;
+            case HTTPC_ERROR_READ_TIMEOUT:
+                errorMsg = "Read timeout";
+                break;
+            default:
+                if (httpCode > 0) {
+                    errorMsg = "HTTP " + String(httpCode);
+                } else {
+                    errorMsg = "Network error " + String(httpCode);
+                }
+                break;
+        }
+        
+        LOG_DEBUGF("[OTA] Error details: %s", errorMsg.c_str());
         http.end();
         return false;
     }

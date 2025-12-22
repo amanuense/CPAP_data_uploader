@@ -39,6 +39,7 @@ public:
     bool writeChunk(const uint8_t* data, size_t length);
     bool finishUpdate();
     void abortUpdate();
+    void forceReset();
     
     // Download and install from URL
     bool updateFromURL(const String& url);

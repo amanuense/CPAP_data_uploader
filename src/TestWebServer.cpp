@@ -54,7 +54,9 @@ bool TestWebServer::begin() {
 #ifdef ENABLE_OTA_UPDATES
     // OTA handlers
     server->on("/ota", [this]() { this->handleOTAPage(); });
-    server->on("/ota-upload", HTTP_POST, [this]() { this->handleOTAUpload(); });
+    server->on("/ota-upload", HTTP_POST, 
+               [this]() { this->handleOTAUploadComplete(); },
+               [this]() { this->handleOTAUpload(); });
     server->on("/ota-url", HTTP_POST, [this]() { this->handleOTAURL(); });
     server->on("/ota-status", [this]() { this->handleOTAStatus(); });
 #endif
@@ -718,11 +720,11 @@ void TestWebServer::handleOTAPage() {
     } else {
         // Warning message
         html += "<div class='warning'>";
-        html += "<h3>⚠️ Important Warning</h3>";
+        html += "<h3>WARNING: Important Safety Information</h3>";
         html += "<ul>";
         html += "<li><strong>Do not power off</strong> the device during update</li>";
         html += "<li><strong>Ensure stable WiFi</strong> connection before starting</li>";
-        html += "<li><strong>Remove SD card</strong> from CPAP machine during update</li>";
+        html += "<li><strong>Do NOT remove SD card</strong> from CPAP machine during update</li>";
         html += "<li>Update process takes 1-2 minutes</li>";
         html += "<li>Device will restart automatically when complete</li>";
         html += "</ul>";
@@ -862,55 +864,125 @@ void TestWebServer::handleOTAPage() {
 
 // POST /ota-upload - Handle firmware file upload
 void TestWebServer::handleOTAUpload() {
+    static bool uploadError = false;
+    static unsigned long lastUploadAttempt = 0;
+    
+    LOG_DEBUG("[OTA] handleOTAUpload() called");
+    
     if (!otaManager) {
+        LOG_ERROR("[OTA] OTA manager not initialized");
         server->send(500, "application/json", "{\"success\":false,\"message\":\"OTA manager not initialized\"}");
         return;
     }
     
-    if (otaManager->isUpdateInProgress()) {
-        server->send(400, "application/json", "{\"success\":false,\"message\":\"Update already in progress\"}");
-        return;
-    }
-    
     HTTPUpload& upload = server->upload();
+    LOG_DEBUGF("[OTA] Upload status: %d", upload.status);
     
     if (upload.status == UPLOAD_FILE_START) {
-        LOG_DEBUGF("[OTA] Starting file upload: %s", upload.filename.c_str());
+        LOG_DEBUGF("[OTA] UPLOAD_FILE_START - filename: %s, totalSize: %u", upload.filename.c_str(), upload.totalSize);
         
-        if (!otaManager->startUpdate(upload.totalSize)) {
-            LOG_ERROR("[OTA] Failed to start update");
-            server->send(500, "application/json", "{\"success\":false,\"message\":\"Failed to start update\"}");
+        // Only check for "already in progress" during START phase
+        if (otaManager->isUpdateInProgress()) {
+            LOG_ERROR("[OTA] Update already in progress");
+            server->send(400, "application/json", "{\"success\":false,\"message\":\"Update already in progress\"}");
             return;
         }
         
+        // Prevent rapid repeated calls (debounce)
+        unsigned long now = millis();
+        if (now - lastUploadAttempt < 1000) {  // 1 second debounce
+            LOG_WARN("[OTA] Upload attempt too soon, ignoring");
+            server->send(429, "application/json", "{\"success\":false,\"message\":\"Too many requests\"}");
+            return;
+        }
+        lastUploadAttempt = now;
+        
+        uploadError = false;
+        
+        if (upload.totalSize == 0) {
+            LOG_WARN("[OTA] Total size is 0, using chunked upload mode");
+        }
+        
+        if (!otaManager->startUpdate(upload.totalSize)) {
+            LOG_ERROR("[OTA] Failed to start update");
+            uploadError = true;
+            return;
+        }
+        
+        LOG_DEBUG("[OTA] Update started successfully");
         // Set progress callback
         otaManager->setProgressCallback(otaProgressCallback);
         
     } else if (upload.status == UPLOAD_FILE_WRITE) {
-        if (!otaManager->writeChunk(upload.buf, upload.currentSize)) {
+        LOG_DEBUGF("[OTA] UPLOAD_FILE_WRITE - currentSize: %u, uploadError: %s", 
+                   upload.currentSize, uploadError ? "true" : "false");
+        
+        if (!uploadError && !otaManager->writeChunk(upload.buf, upload.currentSize)) {
             LOG_ERROR("[OTA] Failed to write chunk");
-            server->send(500, "application/json", "{\"success\":false,\"message\":\"Failed to write firmware data\"}");
+            uploadError = true;
             return;
         }
         
     } else if (upload.status == UPLOAD_FILE_END) {
+        LOG_DEBUGF("[OTA] UPLOAD_FILE_END - totalSize: %u, uploadError: %s", 
+                   upload.totalSize, uploadError ? "true" : "false");
+        
+        if (uploadError) {
+            LOG_ERROR("[OTA] Upload failed due to previous errors");
+            otaManager->abortUpdate();
+            // Don't send response here, handleOTAUploadComplete will handle it
+            return;
+        }
+        
         if (otaManager->finishUpdate()) {
             LOG("[OTA] Update completed successfully, restarting...");
-            server->send(200, "application/json", "{\"success\":true,\"message\":\"Update completed! Device will restart in 3 seconds.\"}");
-            
+            // Don't send response here, let the device restart
             // Restart after a short delay
             delay(3000);
             ESP.restart();
         } else {
             LOG_ERROR("[OTA] Failed to finish update");
-            String error = otaManager->getLastError();
-            server->send(500, "application/json", "{\"success\":false,\"message\":\"Update failed: " + error + "\"}");
+            // Don't send response here, handleOTAUploadComplete will handle it
         }
         
     } else if (upload.status == UPLOAD_FILE_ABORTED) {
-        LOG_WARN("[OTA] Upload aborted");
+        LOG_WARN("[OTA] UPLOAD_FILE_ABORTED");
         otaManager->abortUpdate();
-        server->send(400, "application/json", "{\"success\":false,\"message\":\"Upload aborted\"}");
+        uploadError = true;
+        // Don't send response here, handleOTAUploadComplete will handle it
+    } else {
+        LOG_DEBUGF("[OTA] Unknown upload status: %d", upload.status);
+    }
+}
+
+// POST /ota-upload - Handle completion of firmware file upload
+void TestWebServer::handleOTAUploadComplete() {
+    LOG_DEBUG("[OTA] handleOTAUploadComplete() called");
+    
+    if (!otaManager) {
+        LOG_ERROR("[OTA] OTA manager not initialized");
+        server->send(500, "application/json", "{\"success\":false,\"message\":\"OTA manager not initialized\"}");
+        return;
+    }
+    
+    // This is called after the upload is complete
+    // The actual upload processing happens in handleOTAUpload()
+    // Here we just send the final response
+    
+    if (otaManager->isUpdateInProgress()) {
+        // Update is still in progress, this shouldn't happen
+        LOG_WARN("[OTA] Update still in progress after upload complete");
+        server->send(202, "application/json", "{\"success\":true,\"message\":\"Upload received, processing...\"}");
+    } else {
+        // Check if there was an error during upload
+        String error = otaManager->getLastError();
+        if (!error.isEmpty()) {
+            LOG_ERROR("[OTA] Upload completed with error");
+            server->send(500, "application/json", "{\"success\":false,\"message\":\"Upload failed: " + error + "\"}");
+        } else {
+            LOG_DEBUG("[OTA] Upload completed successfully");
+            server->send(200, "application/json", "{\"success\":true,\"message\":\"Upload completed successfully\"}");
+        }
     }
 }
 
