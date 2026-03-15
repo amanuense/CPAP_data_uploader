@@ -1,4 +1,5 @@
 #include "SMBUploader.h"
+#include "UploadFSM.h"
 #include "Logger.h"
 #include "NetworkRecovery.h"
 
@@ -563,6 +564,12 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
         unsigned long totalBytesRead = 0;
 
         while (localFile.available()) {
+            // Yield to CPAP if it requested bus access (GPIO33 falling edge ISR)
+            if (g_cpapYieldRequest) {
+                LOG_WARN("[SMB] CPAP requested bus — suspending upload");
+                localFile.close();
+                return false;  // Propagates as YIELD_NEEDED to FSM
+            }
             size_t bytesRead = localFile.read(uploadBuffer, uploadBufferSize);
             if (bytesRead == 0) {
                 // Check if we've read all expected bytes

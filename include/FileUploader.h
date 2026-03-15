@@ -45,7 +45,8 @@ enum class UploadResult {
     COMPLETE,        // All eligible files uploaded
     TIMEOUT,         // X-minute timer expired (partial upload, not an error)
     ERROR,           // Upload failure
-    NOTHING_TO_DO    // Pre-flight scan found no work for any backend — skip reboot, go to cooldown
+    NOTHING_TO_DO,   // Pre-flight scan found no work for any backend — skip reboot, go to cooldown
+    YIELD_NEEDED     // CPAP requested bus mid-upload — release and retry
 };
 
 // Filter for which data categories to upload
