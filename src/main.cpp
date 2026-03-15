@@ -48,6 +48,15 @@ CPAPMonitor* cpapMonitor = nullptr;
 #endif
 
 // ============================================================================
+// Bus yield — CPAP requested SD access while ESP owns the bus
+// ============================================================================
+volatile bool g_cpapYieldRequest = false;
+
+void IRAM_ATTR cpapYieldISR() {
+    g_cpapYieldRequest = true;
+}
+
+// ============================================================================
 // Upload FSM State
 // ============================================================================
 UploadState currentState = UploadState::IDLE;
@@ -531,6 +540,9 @@ void handleListening() {
 void handleAcquiring() {
     if (sdManager.takeControl()) {
         LOG("[FSM] SD card control acquired");
+        // Arm yield interrupt: CPAP CS assertion while we own bus = yield
+        g_cpapYieldRequest = false;
+        attachInterrupt(digitalPinToInterrupt(CS_SENSE), cpapYieldISR, FALLING);
         transitionTo(UploadState::UPLOADING);
     } else {
         LOG_WARN("[FSM] Failed to acquire SD card, releasing to cooldown");
@@ -572,6 +584,10 @@ static void runUploadBlocking(DataFilter filter) {
         case UploadResult::NOTHING_TO_DO:
             LOG("[FSM] Nothing to upload — entering cooldown (no reboot)");
             g_nothingToUpload = true;
+            transitionTo(UploadState::RELEASING);
+            break;
+        case UploadResult::YIELD_NEEDED:
+            LOG("[FSM] CPAP requested bus — yielding, will retry");
             transitionTo(UploadState::RELEASING);
             break;
     }
@@ -691,12 +707,20 @@ void handleUploading() {
                 g_nothingToUpload = true;
                 transitionTo(UploadState::RELEASING);
                 break;
+            case UploadResult::YIELD_NEEDED:
+                LOG("[FSM] CPAP requested bus — yielding, will retry after cooldown");
+                transitionTo(UploadState::RELEASING);
+                break;
         }
     }
     // else: task still running — return immediately (non-blocking)
 }
 
 void handleReleasing() {
+    // Disarm yield interrupt before releasing bus
+    detachInterrupt(digitalPinToInterrupt(CS_SENSE));
+    g_cpapYieldRequest = false;
+
     if (sdManager.hasControl()) {
         sdManager.releaseControl();
     }

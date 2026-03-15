@@ -1,4 +1,5 @@
 #include "FileUploader.h"
+#include "UploadFSM.h"
 #include "Logger.h"
 #include "WebStatus.h"
 #include <SD_MMC.h>
@@ -473,6 +474,7 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
             if (!timerExpired && needFresh) {
                 LOG("[FileUploader] Phase 1: Fresh DATALOG folders (SMB)");
                 for (const String& folder : freshFolders) {
+                    if (g_cpapYieldRequest) { LOG_WARN("[FileUploader] CPAP requested bus — yielding"); return UploadResult::YIELD_NEEDED; }
                     if (isTimerExpired()) { timerExpired = true; break; }
                     uploadDatalogFolderSmb(sdManager, folder);
 #ifdef ENABLE_WEBSERVER
@@ -483,6 +485,7 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
             if (!timerExpired && needOld && scheduleManager && scheduleManager->canUploadOldData()) {
                 LOG("[FileUploader] Phase 2: Old DATALOG folders (SMB)");
                 for (const String& folder : oldFolders) {
+                    if (g_cpapYieldRequest) { LOG_WARN("[FileUploader] CPAP requested bus — yielding"); return UploadResult::YIELD_NEEDED; }
                     if (isTimerExpired()) { timerExpired = true; break; }
                     uploadDatalogFolderSmb(sdManager, folder);
 #ifdef ENABLE_WEBSERVER
@@ -546,6 +549,7 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
 
             if (!cloudImportFailed) {
                 auto runCloudFolder = [&](const String& folder) -> bool {
+                    if (g_cpapYieldRequest) { return false; }
                     if (isTimerExpired()) { timerExpired = true; return false; }
                     uploadDatalogFolderCloud(sdManager, folder);
 #ifdef ENABLE_WEBSERVER
@@ -581,6 +585,12 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
         g_cloudSessionStatus.currentFolder[0] = '\0';
     }
 #endif
+
+    // ── Check if yield was requested at any point ──────────────────────────────
+    if (g_cpapYieldRequest) {
+        LOG_WARN("[FileUploader] CPAP requested bus — returning YIELD_NEEDED");
+        return UploadResult::YIELD_NEEDED;
+    }
 
     // ── Write full session summary ────────────────────────────────────────────
     UploadStateManager* sm = activeStateManager();

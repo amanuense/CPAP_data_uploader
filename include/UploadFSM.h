@@ -27,4 +27,15 @@ inline const char* getStateName(UploadState state) {
     }
 }
 
+// ── Bus yield mechanism ──────────────────────────────────────────────────────
+// GPIO33 (CS_SENSE) is tapped on the CPAP side of the MUX, upstream of the
+// GPIO26 switch. A FALLING edge while ESP owns the bus means the CPAP is
+// trying to access the SD card and being silently blocked.
+//
+// The ISR sets this flag; upload loops check it at chunk boundaries and
+// return YIELD_NEEDED so the FSM can release the bus within microseconds.
+extern volatile bool g_cpapYieldRequest;
+
+void IRAM_ATTR cpapYieldISR();
+
 #endif // UPLOAD_FSM_H
