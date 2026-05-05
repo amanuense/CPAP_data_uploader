@@ -28,6 +28,7 @@ We are currently gathering statistics on which models work reliably. **If your m
 | :--- | :--- | :--- | :--- | :--- | :---: | :--- |
 | **AirSense 11** | Singapore | `R390-420/1` | 39480 | *(not specified / Europe)* | ✅ **100%** | Fully working |
 | **AirSense 11** | Singapore | `R390-451/1` | 39483 | *(not specified / Europe)* | ✅ **100%** | Fully working |
+| **AirSense 11** | Singapore | `R390-451/1` | 39463 | *(not specified / Europe)* | ✅ **100%** | Fully working |
 | **AirSense 11** | Singapore | `R390-447/1` | 39517 | AIR11M1G22 | ❌ **35%** | Has known power delivery issues. Fails on most units. |
 | ↳ *(modded)* | — | — | ↳ 39517 🔧 | — | ⚠️ **65%** | *With 1uF SD Extender Mod and `BROWNOUT_DETECT=OFF`* |
 | **AirSense 11** | Singapore | `R390-447/1` | 39520 | AIR11M1G22 | ✅ **100%** | Fully working |
