@@ -26,6 +26,9 @@ include/version.h
 opencode.json
 opencode.jsonc
 
+# Claude Code
+.claude/
+
 # Temporary files
 *.tmp
 *.bak
