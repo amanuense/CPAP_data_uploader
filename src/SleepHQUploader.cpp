@@ -7,6 +7,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "NetworkRecovery.h"
+#include "TrafficMonitor.h"
 #include <esp32/rom/md5_hash.h>
 #include <esp_task_wdt.h>
 
@@ -734,6 +735,8 @@ bool SleepHQUploader::upload(const String& localPath, const String& remotePath,
     }
     
     LOG_DEBUGF("[SleepHQ] Uploaded: %s (%lu bytes)", fileName.c_str(), bytesTransferred);
+    TrafficMonitor::getInstance().addTxBytes(bytesTransferred);
+    TrafficMonitor::getInstance().addFile();
     return true;
 }
 

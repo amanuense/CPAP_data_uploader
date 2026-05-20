@@ -1,8 +1,9 @@
 #include "FileUploader.h"
 #include "Logger.h"
 #include "WebStatus.h"
+#include "TrafficMonitor.h"
 #include <SD_MMC.h>
-#include <HTTPClient.h>
+#include "WebhookNotifier.h"
 #include <functional>
 #include <time.h>
 
@@ -415,6 +416,7 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
 
     cloudImportCreated = false;
     cloudImportFailed  = false;
+    TrafficMonitor::getInstance().resetSessionStats();
 
     bool timerExpired = false;
     auto isTimerExpired = [&]() -> bool {
@@ -595,46 +597,27 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
     LOGF("[FileUploader] Session ended: %lu seconds elapsed, done=%d/%d",
          elapsed / 1000, sessionDone, sessionTotal);
 
+    UploadResult result;
+
     if (timerExpired && hasIncompleteFolders()) {
         LOG("[FileUploader] Timer expired with incomplete folders (TIMEOUT)");
-        return UploadResult::TIMEOUT;
-    }
-
-    if (!hasIncompleteFolders()) {
+        result = UploadResult::TIMEOUT;
+    } else if (!hasIncompleteFolders()) {
         time_t endNow; time(&endNow);
         if (sm) sm->setLastUploadTimestamp((unsigned long)endNow);
         if (scheduleManager) scheduleManager->markDayCompleted();
         LOG("[FileUploader] All folders complete — session done");
-
-        // ── Webhook notifications (block-scoped HTTPClient for memory safety) ──
-        {
-            if (!config->getSleepLabDomain().isEmpty() && !config->getSleepLabUserId().isEmpty()) {
-                HTTPClient http;
-                String url = config->getSleepLabDomain() + "/api/import/webhook/" + config->getSleepLabUserId();
-                http.begin(url);
-                http.setTimeout(5000);
-                int code = http.POST("");
-                LOGF("[Webhook] SleepLab POST %s → %d", url.c_str(), code);
-                http.end();
-                vTaskDelay(10);
-            }
-        }
-        {
-            if (!config->getGenericWebhookUrl().isEmpty()) {
-                HTTPClient http;
-                http.begin(config->getGenericWebhookUrl());
-                http.setTimeout(5000);
-                int code = http.POST("");
-                LOGF("[Webhook] Generic POST %s → %d", config->getGenericWebhookUrl().c_str(), code);
-                http.end();
-                vTaskDelay(10);
-            }
-        }
-
-        return UploadResult::COMPLETE;
+        result = UploadResult::COMPLETE;
+    } else {
+        result = UploadResult::TIMEOUT;
     }
 
-    return UploadResult::TIMEOUT;
+    // ── Webhook notifications ──
+    WebhookNotifier::trigger(config, result == UploadResult::COMPLETE,
+                             TrafficMonitor::getInstance().getFilesUploaded(),
+                             TrafficMonitor::getInstance().getTotalTxBytes());
+
+    return result;
 }
 
 

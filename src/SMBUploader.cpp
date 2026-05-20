@@ -1,6 +1,7 @@
 #include "SMBUploader.h"
 #include "Logger.h"
 #include "NetworkRecovery.h"
+#include "TrafficMonitor.h"
 
 #ifdef ENABLE_SMB_UPLOAD
 
@@ -710,6 +711,8 @@ bool SMBUploader::upload(const String& localPath, const String& remotePath,
                        (unsigned int)fileSize,
                        attemptBytesTransferred,
                        (attemptBytesTransferred == fileSize) ? "YES" : "NO");
+            TrafficMonitor::getInstance().addTxBytes(attemptBytesTransferred);
+            TrafficMonitor::getInstance().addFile();
             return true;
         }
 

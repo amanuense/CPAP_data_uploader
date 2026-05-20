@@ -24,6 +24,11 @@ TrafficMonitor::TrafficMonitor()
     memset(_sampleBuffer, 0, sizeof(_sampleBuffer));
 }
 
+TrafficMonitor& TrafficMonitor::getInstance() {
+    extern TrafficMonitor trafficMonitor;
+    return trafficMonitor;
+}
+
 void TrafficMonitor::begin(int pin) {
     _pin = pin;
     

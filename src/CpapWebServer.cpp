@@ -639,7 +639,10 @@ void CpapWebServer::initConfigSnapshot() {
         ",\"cloud_configured\":%s"
         ",\"firmware\":\"%s\""
         ",\"sleep_lab_domain\":\"%s\",\"sleep_lab_user_id\":\"%s\""
-        ",\"generic_webhook_url\":\"%s\"}",
+        ",\"sleep_lab_secret\":\"%s\""
+        ",\"generic_webhook_url\":\"%s\""
+        ",\"webhook_extended_metadata\":%s"
+        ",\"webhook_append_fail_path\":%s}",
         config->getWifiSSID().c_str(),
         config->getHostname().c_str(),
         config->getEndpointType().c_str(),
@@ -653,7 +656,10 @@ void CpapWebServer::initConfigSnapshot() {
         FIRMWARE_VERSION,
         config->getSleepLabDomain().c_str(),
         config->getSleepLabUserId().c_str(),
-        config->getGenericWebhookUrl().c_str());
+        config->getSleepLabSecret().c_str(),
+        config->getGenericWebhookUrl().c_str(),
+        config->getWebhookExtendedMetadata() ? "true" : "false",
+        config->getWebhookAppendFailPath() ? "true" : "false");
     if (n > 0 && n < (int)sizeof(buf)) {
         memcpy(g_webConfigBuf, buf, n + 1);
     }

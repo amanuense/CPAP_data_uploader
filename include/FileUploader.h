@@ -103,6 +103,8 @@ private:
     bool cloudImportFailed;
     int  cloudDatalogFilesUploaded;  // DATALOG files uploaded this cloud pass; 0 = skip finalize
 
+
+
     // Backend cycling helpers
     UploadBackend selectActiveBackend(fs::FS& sd) const;
     BackendSummary readBackendSummary(fs::FS& sd, UploadBackend backend) const;

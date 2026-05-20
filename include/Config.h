@@ -64,7 +64,10 @@ private:
     // Webhook notification settings
     String sleepLabDomain;
     String sleepLabUserId;
+    String sleepLabSecret;
     String genericWebhookUrl;
+    bool webhookExtendedMetadata;
+    bool webhookAppendFailPath;
     
     // Cached endpoint type flags (computed once during loadFromSD)
     bool _hasSmbEndpoint;
@@ -154,7 +157,10 @@ public:
     // Webhook notification getters
     const String& getSleepLabDomain() const;
     const String& getSleepLabUserId() const;
+    const String& getSleepLabSecret() const;
     const String& getGenericWebhookUrl() const;
+    bool getWebhookExtendedMetadata() const;
+    bool getWebhookAppendFailPath() const;
     
     // Power management getters
     int getCpuSpeedMhz() const;

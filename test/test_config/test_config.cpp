@@ -179,6 +179,7 @@ void test_config_load_webhooks() {
         "ENDPOINT = //server/share\n"
         "SLEEPLAB_DOMAIN = https://sleeplab.example.com/\n"
         "SLEEPLAB_USER_ID = user_abc123\n"
+        "SLEEPLAB_SECRET = topsecret\n"
         "GENERIC_WEBHOOK_URL = https://hc-ping.com/uuid-here\n";
     
     mockSD.addFile("/config.txt", configContent);
@@ -189,7 +190,28 @@ void test_config_load_webhooks() {
     TEST_ASSERT_TRUE(loaded);
     TEST_ASSERT_EQUAL_STRING("https://sleeplab.example.com", config.getSleepLabDomain().c_str());
     TEST_ASSERT_EQUAL_STRING("user_abc123", config.getSleepLabUserId().c_str());
+    TEST_ASSERT_EQUAL_STRING("topsecret", config.getSleepLabSecret().c_str());
     TEST_ASSERT_EQUAL_STRING("https://hc-ping.com/uuid-here", config.getGenericWebhookUrl().c_str());
+    TEST_ASSERT_TRUE(config.getWebhookExtendedMetadata());
+    TEST_ASSERT_FALSE(config.getWebhookAppendFailPath());
+}
+
+// Test loading configuration with webhook boolean toggles
+void test_config_load_webhooks_toggles() {
+    std::string configContent = 
+        "WIFI_SSID = TestNetwork\n"
+        "ENDPOINT = //server/share\n"
+        "WEBHOOK_EXTENDED_METADATA = false\n"
+        "WEBHOOK_APPEND_FAIL_PATH = true\n";
+    
+    mockSD.addFile("/config.txt", configContent);
+    
+    Config config;
+    bool loaded = config.loadFromSD(mockSD);
+    
+    TEST_ASSERT_TRUE(loaded);
+    TEST_ASSERT_FALSE(config.getWebhookExtendedMetadata());
+    TEST_ASSERT_TRUE(config.getWebhookAppendFailPath());
 }
 
 // Test loading configuration without webhook fields (should default to empty)
@@ -206,7 +228,10 @@ void test_config_load_webhooks_empty() {
     TEST_ASSERT_TRUE(loaded);
     TEST_ASSERT_EQUAL_STRING("", config.getSleepLabDomain().c_str());
     TEST_ASSERT_EQUAL_STRING("", config.getSleepLabUserId().c_str());
+    TEST_ASSERT_EQUAL_STRING("", config.getSleepLabSecret().c_str());
     TEST_ASSERT_EQUAL_STRING("", config.getGenericWebhookUrl().c_str());
+    TEST_ASSERT_TRUE(config.getWebhookExtendedMetadata());
+    TEST_ASSERT_FALSE(config.getWebhookAppendFailPath());
 }
 
 // Test WebDAV endpoint type
@@ -966,6 +991,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_config_load_empty_file);
     RUN_TEST(test_config_load_webhooks);
     RUN_TEST(test_config_load_webhooks_empty);
+    RUN_TEST(test_config_load_webhooks_toggles);
     RUN_TEST(test_config_webdav_endpoint);
     RUN_TEST(test_config_sleephq_endpoint);
     

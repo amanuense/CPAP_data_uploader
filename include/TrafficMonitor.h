@@ -28,6 +28,9 @@ class TrafficMonitor {
 public:
     TrafficMonitor();
 
+    // Singleton access — wraps the global instance declared in main.cpp
+    static TrafficMonitor& getInstance();
+
     void begin(int pin);              // Initialize PCNT on given GPIO
     void update();                    // Call every loop() — non-blocking ~100ms sample
     
@@ -51,6 +54,13 @@ public:
     
     // Reset statistics (e.g., when entering MONITORING mode)
     void resetStatistics();
+
+    // Session-level upload stats — accumulated by the transport layer
+    void addTxBytes(unsigned long n) { _totalTxBytes += n; }
+    void addFile()                    { _filesUploaded++; }
+    unsigned long getTotalTxBytes() const { return _totalTxBytes; }
+    int getFilesUploaded() const          { return _filesUploaded; }
+    void resetSessionStats()              { _totalTxBytes = 0; _filesUploaded = 0; }
 
 private:
     int _pin;
@@ -78,6 +88,10 @@ private:
     uint32_t _longestIdleMs;
     uint32_t _totalActiveSamples;
     uint32_t _totalIdleSamples;
+
+    // Session-level upload stats
+    unsigned long _totalTxBytes = 0;
+    int _filesUploaded = 0;
     
     void pushSample(uint32_t timestamp, uint16_t pulseCount);
 };

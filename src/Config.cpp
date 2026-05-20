@@ -32,7 +32,10 @@ Config::Config() :
     // Webhook defaults
     sleepLabDomain(""),
     sleepLabUserId(""),
+    sleepLabSecret(""),
     genericWebhookUrl(""),
+    webhookExtendedMetadata(true),
+    webhookAppendFailPath(false),
     
     _hasSmbEndpoint(false),
     _hasCloudEndpoint(false),
@@ -238,6 +241,12 @@ void Config::setConfigValue(String key, String value) {
         sleepLabDomain = value;
     } else if (key == "SLEEPLAB_USER_ID") {
         sleepLabUserId = value;
+    } else if (key == "SLEEPLAB_SECRET") {
+        sleepLabSecret = value;
+    } else if (key == "WEBHOOK_EXTENDED_METADATA") {
+        webhookExtendedMetadata = (value.equalsIgnoreCase("true") || value.toInt() == 1);
+    } else if (key == "WEBHOOK_APPEND_FAIL_PATH") {
+        webhookAppendFailPath = (value.equalsIgnoreCase("true") || value.toInt() == 1);
     } else if (key == "GENERIC_WEBHOOK_URL") {
         genericWebhookUrl = value;
     } else {
@@ -621,7 +630,10 @@ bool Config::isSmartMode() const { return uploadMode == "smart"; }
 // Webhook notification getters
 const String& Config::getSleepLabDomain() const { return sleepLabDomain; }
 const String& Config::getSleepLabUserId() const { return sleepLabUserId; }
+const String& Config::getSleepLabSecret() const { return sleepLabSecret; }
 const String& Config::getGenericWebhookUrl() const { return genericWebhookUrl; }
+bool Config::getWebhookExtendedMetadata() const { return webhookExtendedMetadata; }
+bool Config::getWebhookAppendFailPath() const { return webhookAppendFailPath; }
 
 // Helper methods for enum conversion
 WifiTxPower Config::parseWifiTxPower(const String& str) {

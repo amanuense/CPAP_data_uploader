@@ -393,31 +393,62 @@ The system automatically secures your WiFi and endpoint passwords by moving them
 
 ### Webhook Notifications
 
-These optional settings fire HTTP POST requests on successful completion of a sync session. They are useful for notifying external systems (e.g., SleepLab, Healthchecks.io, Home Assistant) that new CPAP data is ready.
+These optional settings fire HTTP POST requests at the end of every sync session, regardless of whether all folders completed. They are useful for notifying external systems (e.g., SleepLab, Healthchecks.io, Home Assistant) about the upload result.
+
+Each POST sends a JSON body with the event type and status:
+```json
+{"event":"cpap_sync_session","status":"success"}  — all folders completed
+{"event":"cpap_sync_session","status":"error"}    — session timed out or encountered errors
+```
+
+When `WEBHOOK_EXTENDED_METADATA` is enabled (default: `true`), the payload also includes aggregate upload stats:
+```json
+{"event":"cpap_sync_session","status":"success","files_processed":42,"bytes_transferred":1048576}
+```
 
 **SLEEPLAB_DOMAIN** (optional)
-> The base URL of your SleepLab instance. When combined with `SLEEPLAB_USER_ID`, the firmware POSTs to `{SLEEPLAB_DOMAIN}/api/import/webhook/{SLEEPLAB_USER_ID}` after a successful sync.
+> The base URL of your SleepLab instance. Combined with `SLEEPLAB_USER_ID` to form the import endpoint URL.
 >
 > Trailing slashes are automatically stripped.
 >
 > Example: `https://sleeplab.example.com`
 
 **SLEEPLAB_USER_ID** (optional)
-> Your user ID for the SleepLab instance. Combined with `SLEEPLAB_DOMAIN` to form the webhook URL.
+> Your user ID for the SleepLab instance. When set, the firmware POSTs to `{SLEEPLAB_DOMAIN}/api/import/webhook/{SLEEPLAB_USER_ID}`.
+>
+> If **left blank**, the firmware falls back to `{SLEEPLAB_DOMAIN}/import/trigger/all` to trigger a sync for all users on the SleepLab instance.
 >
 > Example: `user_abc123`
 
+**SLEEPLAB_SECRET** (optional)
+> The import secret/key for your SleepLab instance. Sent as the `X-Import-Secret` HTTP header. Required by the SleepLab API to authorize the webhook trigger.
+>
+> Example: `your-secret-key`
+
 **GENERIC_WEBHOOK_URL** (optional)
-> A full URL to POST to after every successful sync. Useful for pinging uptime monitors (Healthchecks.io) or triggering automations (Home Assistant).
+> A full URL to POST to after every sync session. Useful for pinging uptime monitors (Healthchecks.io) or triggering automations (Home Assistant).
+>
+> HTTPS URLs use `WiFiClientSecure` in insecure mode to support user-provided endpoints without certificate pinning.
 >
 > Example: `https://hc-ping.com/your-uuid-here`
 
+**WEBHOOK_EXTENDED_METADATA** (optional, default: `true`)
+> When enabled, the JSON payload includes `files_processed` and `bytes_transferred` counters aggregated over the entire session.
+>
+> Set to `false` to send only the event name and status (smaller payload, less heap used per POST).
+
+**WEBHOOK_APPEND_FAIL_PATH** (optional, default: `false`)
+> When enabled AND the session encounters a failure (timeout or error), the firmware appends `/fail` to the generic webhook URL before posting. This is useful for Healthchecks.io, which treats `{url}/fail` as an explicit failure signal.
+>
+> Trailing slashes on the generic URL are stripped before appending `/fail`.
+
 **Behavior:**
-- Webhooks fire **only** when all folders complete successfully (session returns COMPLETE)
+- Webhooks fire at the end of every session (COMPLETE, TIMEOUT, or ERROR) — not just on full success
 - Each webhook has a strict **5000ms timeout** — a timeout or failure does not affect the upload result
 - If both SleepLab and Generic are configured, SleepLab fires first, then Generic (sequential)
-- HTTP clients are block-scoped to free TLS/socket resources immediately after each POST
 - A `vTaskDelay(10)` yield separates the two webhooks to feed the FreeRTOS watchdog
+- HTTP clients are block-scoped to free TLS/socket resources immediately after each POST
+- Aggregate file/byte counters (`files_processed`, `bytes_transferred`) are tracked in FileUploader and passed to WebhookNotifier; zero heap is used for the counter values themselves
 
 ---
 
