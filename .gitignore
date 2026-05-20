@@ -21,6 +21,11 @@ compile_commands.json
 # Auto-generated files
 include/version.h
 
+# opencode configuration
+.opencode/
+opencode.json
+opencode.jsonc
+
 # Temporary files
 *.tmp
 *.bak
