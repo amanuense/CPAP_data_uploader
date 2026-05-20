@@ -27,7 +27,7 @@ void WebhookNotifier::trigger(Config* config, bool sessionSucceeded,
         String slSecret = config->getSleepLabSecret();
 
         String endpoint = slUser.length() > 0
-            ? slDomain + "/api/import/webhook/" + slUser
+            ? slDomain + "/import/webhook/" + slUser
             : slDomain + "/import/trigger/all";
 
         {
