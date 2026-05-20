@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "WebStatus.h"
 #include <SD_MMC.h>
+#include <HTTPClient.h>
 #include <functional>
 #include <time.h>
 
@@ -604,6 +605,32 @@ UploadResult FileUploader::uploadWithExclusiveAccess(SDCardManager* sdManager, i
         if (sm) sm->setLastUploadTimestamp((unsigned long)endNow);
         if (scheduleManager) scheduleManager->markDayCompleted();
         LOG("[FileUploader] All folders complete — session done");
+
+        // ── Webhook notifications (block-scoped HTTPClient for memory safety) ──
+        {
+            if (!config->getSleepLabDomain().isEmpty() && !config->getSleepLabUserId().isEmpty()) {
+                HTTPClient http;
+                String url = config->getSleepLabDomain() + "/api/import/webhook/" + config->getSleepLabUserId();
+                http.begin(url);
+                http.setTimeout(5000);
+                int code = http.POST("");
+                LOGF("[Webhook] SleepLab POST %s → %d", url.c_str(), code);
+                http.end();
+                vTaskDelay(10);
+            }
+        }
+        {
+            if (!config->getGenericWebhookUrl().isEmpty()) {
+                HTTPClient http;
+                http.begin(config->getGenericWebhookUrl());
+                http.setTimeout(5000);
+                int code = http.POST("");
+                LOGF("[Webhook] Generic POST %s → %d", config->getGenericWebhookUrl().c_str(), code);
+                http.end();
+                vTaskDelay(10);
+            }
+        }
+
         return UploadResult::COMPLETE;
     }
 

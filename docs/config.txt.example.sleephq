@@ -27,3 +27,8 @@ GMT_OFFSET_HOURS = 0
 CPU_SPEED_MHZ = 240
 WIFI_TX_PWR = high
 WIFI_PWR_SAVING = none
+
+# Webhooks (optional — fires on successful sync)
+# SLEEPLAB_DOMAIN = https://your-sleeplab-instance.com
+# SLEEPLAB_USER_ID = your-user-id
+# GENERIC_WEBHOOK_URL = https://hc-ping.com/your-uuid

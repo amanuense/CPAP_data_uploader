@@ -28,6 +28,11 @@ Config::Config() :
     inactivitySeconds(62),
     exclusiveAccessMinutes(5),
     cooldownMinutes(10),
+
+    // Webhook defaults
+    sleepLabDomain(""),
+    sleepLabUserId(""),
+    genericWebhookUrl(""),
     
     _hasSmbEndpoint(false),
     _hasCloudEndpoint(false),
@@ -229,6 +234,12 @@ void Config::setConfigValue(String key, String value) {
         wifiPowerSaving = parseWifiPowerSaving(value);
     } else if (key == "STORE_CREDENTIALS_PLAIN_TEXT") {
         storePlainText = (value.equalsIgnoreCase("true") || value.toInt() == 1);
+    } else if (key == "SLEEPLAB_DOMAIN") {
+        sleepLabDomain = value;
+    } else if (key == "SLEEPLAB_USER_ID") {
+        sleepLabUserId = value;
+    } else if (key == "GENERIC_WEBHOOK_URL") {
+        genericWebhookUrl = value;
     } else {
         LOGF("WARN: Unknown config key '%s'. Skipping.", key.c_str());
     }
@@ -535,6 +546,11 @@ bool Config::loadFromSD(fs::FS &sd) {
     if (cpuSpeedMhz < 80) { cpuSpeedMhz = 80; }
     else if (cpuSpeedMhz > 240) { cpuSpeedMhz = 240; }
     
+    // Webhook validation: strip trailing slash from SleepLab domain
+    while (sleepLabDomain.endsWith("/")) {
+        sleepLabDomain = sleepLabDomain.substring(0, sleepLabDomain.length() - 1);
+    }
+    
     isValid = !wifiSSID.isEmpty() && hasValidEndpoint;
     
     if (isValid) {
@@ -601,6 +617,11 @@ int Config::getInactivitySeconds() const { return inactivitySeconds; }
 int Config::getExclusiveAccessMinutes() const { return exclusiveAccessMinutes; }
 int Config::getCooldownMinutes() const { return cooldownMinutes; }
 bool Config::isSmartMode() const { return uploadMode == "smart"; }
+
+// Webhook notification getters
+const String& Config::getSleepLabDomain() const { return sleepLabDomain; }
+const String& Config::getSleepLabUserId() const { return sleepLabUserId; }
+const String& Config::getGenericWebhookUrl() const { return genericWebhookUrl; }
 
 // Helper methods for enum conversion
 WifiTxPower Config::parseWifiTxPower(const String& str) {

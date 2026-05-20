@@ -637,7 +637,9 @@ void CpapWebServer::initConfigSnapshot() {
         ",\"exclusive_access_minutes\":%d,\"cooldown_minutes\":%d"
         ",\"gmt_offset_hours\":%d,\"max_days\":%d"
         ",\"cloud_configured\":%s"
-        ",\"firmware\":\"%s\"}",
+        ",\"firmware\":\"%s\""
+        ",\"sleep_lab_domain\":\"%s\",\"sleep_lab_user_id\":\"%s\""
+        ",\"generic_webhook_url\":\"%s\"}",
         config->getWifiSSID().c_str(),
         config->getHostname().c_str(),
         config->getEndpointType().c_str(),
@@ -648,7 +650,10 @@ void CpapWebServer::initConfigSnapshot() {
         config->getExclusiveAccessMinutes(), config->getCooldownMinutes(),
         config->getGmtOffsetHours(), config->getMaxDays(),
         hasCloud ? "true" : "false",
-        FIRMWARE_VERSION);
+        FIRMWARE_VERSION,
+        config->getSleepLabDomain().c_str(),
+        config->getSleepLabUserId().c_str(),
+        config->getGenericWebhookUrl().c_str());
     if (n > 0 && n < (int)sizeof(buf)) {
         memcpy(g_webConfigBuf, buf, n + 1);
     }

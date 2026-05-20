@@ -391,6 +391,34 @@ The system automatically secures your WiFi and endpoint passwords by moving them
 - Add `STORE_CREDENTIALS_PLAIN_TEXT = true` to your `config.txt`
 - Passwords will remain visible in the file
 
+### Webhook Notifications
+
+These optional settings fire HTTP POST requests on successful completion of a sync session. They are useful for notifying external systems (e.g., SleepLab, Healthchecks.io, Home Assistant) that new CPAP data is ready.
+
+**SLEEPLAB_DOMAIN** (optional)
+> The base URL of your SleepLab instance. When combined with `SLEEPLAB_USER_ID`, the firmware POSTs to `{SLEEPLAB_DOMAIN}/api/import/webhook/{SLEEPLAB_USER_ID}` after a successful sync.
+>
+> Trailing slashes are automatically stripped.
+>
+> Example: `https://sleeplab.example.com`
+
+**SLEEPLAB_USER_ID** (optional)
+> Your user ID for the SleepLab instance. Combined with `SLEEPLAB_DOMAIN` to form the webhook URL.
+>
+> Example: `user_abc123`
+
+**GENERIC_WEBHOOK_URL** (optional)
+> A full URL to POST to after every successful sync. Useful for pinging uptime monitors (Healthchecks.io) or triggering automations (Home Assistant).
+>
+> Example: `https://hc-ping.com/your-uuid-here`
+
+**Behavior:**
+- Webhooks fire **only** when all folders complete successfully (session returns COMPLETE)
+- Each webhook has a strict **5000ms timeout** — a timeout or failure does not affect the upload result
+- If both SleepLab and Generic are configured, SleepLab fires first, then Generic (sequential)
+- HTTP clients are block-scoped to free TLS/socket resources immediately after each POST
+- A `vTaskDelay(10)` yield separates the two webhooks to feed the FreeRTOS watchdog
+
 ---
 
 ## Common Configuration Examples

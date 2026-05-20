@@ -10,7 +10,7 @@ Each upload session runs **exactly one backend** (SMB or Cloud), selected by cyc
 1. **Backend selection** — at `begin()`, read `.backend_summary.smb` / `.backend_summary.cloud` and pick the backend with the **oldest `sessionStartTs`** (never-run backends have ts=0, so they go first)
 2. **Session start** — write a placeholder summary entry with the current timestamp (advances the cycling pointer even if the session crashes)
 3. **Upload pass** — run only the selected backend
-4. **Session end** — overwrite the summary with full stats (done/total/empty)
+4. **Session end** — overwrite the summary with full stats (done/total/empty). If session completes with no incomplete folders, any configured webhook notifications (SleepLab and/or Generic) fire immediately before returning COMPLETE.
 5. **Soft reboot** — FSM always reboots after releasing the SD card, restoring heap
 
 ### Pre-flight Scans

@@ -60,6 +60,11 @@ private:
     int inactivitySeconds;         // Z: seconds of bus silence before upload
     int exclusiveAccessMinutes;    // X: max minutes of exclusive SD access
     int cooldownMinutes;           // Y: minutes to release SD between upload cycles
+
+    // Webhook notification settings
+    String sleepLabDomain;
+    String sleepLabUserId;
+    String genericWebhookUrl;
     
     // Cached endpoint type flags (computed once during loadFromSD)
     bool _hasSmbEndpoint;
@@ -145,6 +150,11 @@ public:
     int getExclusiveAccessMinutes() const;
     int getCooldownMinutes() const;
     bool isSmartMode() const;
+
+    // Webhook notification getters
+    const String& getSleepLabDomain() const;
+    const String& getSleepLabUserId() const;
+    const String& getGenericWebhookUrl() const;
     
     // Power management getters
     int getCpuSpeedMhz() const;

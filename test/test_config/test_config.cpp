@@ -172,6 +172,43 @@ void test_config_load_empty_file() {
     TEST_ASSERT_FALSE(config.valid());
 }
 
+// Test loading configuration with webhook fields
+void test_config_load_webhooks() {
+    std::string configContent = 
+        "WIFI_SSID = TestNetwork\n"
+        "ENDPOINT = //server/share\n"
+        "SLEEPLAB_DOMAIN = https://sleeplab.example.com/\n"
+        "SLEEPLAB_USER_ID = user_abc123\n"
+        "GENERIC_WEBHOOK_URL = https://hc-ping.com/uuid-here\n";
+    
+    mockSD.addFile("/config.txt", configContent);
+    
+    Config config;
+    bool loaded = config.loadFromSD(mockSD);
+    
+    TEST_ASSERT_TRUE(loaded);
+    TEST_ASSERT_EQUAL_STRING("https://sleeplab.example.com", config.getSleepLabDomain().c_str());
+    TEST_ASSERT_EQUAL_STRING("user_abc123", config.getSleepLabUserId().c_str());
+    TEST_ASSERT_EQUAL_STRING("https://hc-ping.com/uuid-here", config.getGenericWebhookUrl().c_str());
+}
+
+// Test loading configuration without webhook fields (should default to empty)
+void test_config_load_webhooks_empty() {
+    std::string configContent = 
+        "WIFI_SSID = TestNetwork\n"
+        "ENDPOINT = //server/share\n";
+    
+    mockSD.addFile("/config.txt", configContent);
+    
+    Config config;
+    bool loaded = config.loadFromSD(mockSD);
+    
+    TEST_ASSERT_TRUE(loaded);
+    TEST_ASSERT_EQUAL_STRING("", config.getSleepLabDomain().c_str());
+    TEST_ASSERT_EQUAL_STRING("", config.getSleepLabUserId().c_str());
+    TEST_ASSERT_EQUAL_STRING("", config.getGenericWebhookUrl().c_str());
+}
+
 // Test WebDAV endpoint type
 void test_config_webdav_endpoint() {
     std::string configContent = 
@@ -927,6 +964,8 @@ int main(int argc, char **argv) {
     RUN_TEST(test_config_load_file_not_found);
     RUN_TEST(test_config_load_invalid_format);
     RUN_TEST(test_config_load_empty_file);
+    RUN_TEST(test_config_load_webhooks);
+    RUN_TEST(test_config_load_webhooks_empty);
     RUN_TEST(test_config_webdav_endpoint);
     RUN_TEST(test_config_sleephq_endpoint);
     
