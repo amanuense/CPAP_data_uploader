@@ -36,9 +36,9 @@ WIFI_TX_PWR = high
 WIFI_PWR_SAVING = none
 
 # Webhooks (optional — fires on sync completion)
-# SLEEPLAB_DOMAIN = https://your-sleeplab-instance.com
-# SLEEPLAB_USER_ID = your-user-id              (leave blank to trigger all users)
-# SLEEPLAB_SECRET = your-import-secret         (required by SleepLab API)
 # GENERIC_WEBHOOK_URL = https://hc-ping.com/your-uuid
 # WEBHOOK_EXTENDED_METADATA = true             (adds files_processed + bytes_transferred to payload)
 # WEBHOOK_APPEND_FAIL_PATH = false             (appends /fail to generic URL on sync failure)
+# SLEEPLAB_DOMAIN = https://your-sleeplab-instance.com
+# SLEEPLAB_USER_ID = your-user-id              (leave blank to trigger all users)
+# SLEEPLAB_SECRET = your-import-secret         (required by SleepLab API)
